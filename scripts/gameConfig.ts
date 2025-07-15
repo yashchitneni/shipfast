@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+import * as Phaser from 'phaser';
 import { SceneKeys } from '../types/game';
 
 // Import scenes
@@ -38,7 +38,7 @@ const gameConfig: Phaser.Types.Core.GameConfig = {
     pixelArt: false,
   },
   audio: {
-    disableWebAudio: false,
+    disableWebAudio: true,
   },
   input: {
     keyboard: true,

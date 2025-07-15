@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAssetStore } from '../../store/useAssetStore';
+import { useEmpireStore } from '../../../src/store/empireStore';
 import { loadAllAssetDefinitions, getMockPortNodes } from '../../lib/assetLoader';
 import { AssetDefinition, AssetType, AssetCategory } from '../../lib/types/assets';
 
@@ -10,14 +10,15 @@ export const AssetPlacementUI: React.FC = () => {
     assetDefinitions,
     loadAssetDefinitions,
     setPortNodes,
-    playerMoney,
-    playerLevel,
+    player,
     startAssetPreview,
     cancelAssetPreview,
     placeAsset,
     assetPreview,
-    getAssetStats
-  } = useAssetStore();
+    getAssetStats,
+    placedAssets,
+    updatePlayerCash
+  } = useEmpireStore();
 
   const [selectedCategory, setSelectedCategory] = useState<AssetCategory | 'all'>('all');
   const [selectedType, setSelectedType] = useState<AssetType | 'all'>('all');
@@ -42,8 +43,9 @@ export const AssetPlacementUI: React.FC = () => {
   };
 
   // Handle placement
-  const handlePlaceAsset = () => {
-    const result = placeAsset();
+  const handlePlaceAsset = async () => {
+    const result = await placeAsset();
+    
     if (result.success) {
       setPlacementMessage({ text: 'Asset placed successfully!', type: 'success' });
     } else {
@@ -75,8 +77,8 @@ export const AssetPlacementUI: React.FC = () => {
       {/* Player Info */}
       <div className="mb-4 p-3 bg-white rounded">
         <div className="flex justify-between items-center">
-          <span className="font-semibold">Money: ${playerMoney.toLocaleString()}</span>
-          <span className="font-semibold">Level: {playerLevel}</span>
+          <span className="font-semibold">Money: ${player?.cash.toLocaleString() || 0}</span>
+          <span className="font-semibold">Level: {player?.level || 1}</span>
         </div>
       </div>
 
@@ -131,9 +133,9 @@ export const AssetPlacementUI: React.FC = () => {
             key={asset.id} 
             asset={asset} 
             onSelect={handleSelectAsset}
-            canAfford={playerMoney >= asset.cost}
+            canAfford={(player?.cash || 0) >= asset.cost}
             meetsRequirements={
-              (!asset.requirements?.minLevel || playerLevel >= asset.requirements.minLevel)
+              (!asset.requirements?.minLevel || (player?.level || 1) >= asset.requirements.minLevel)
             }
           />
         ))}
@@ -173,6 +175,45 @@ export const AssetPlacementUI: React.FC = () => {
           placementMessage.type === 'success' ? 'bg-green-500' : 'bg-red-500'
         }`}>
           {placementMessage.text}
+        </div>
+      )}
+      
+      {/* Debug/Test Section - only in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="mt-4 p-3 bg-gray-200 rounded">
+          <h4 className="font-semibold mb-2">Debug Actions</h4>
+          <div className="space-y-2">
+            <button
+              onClick={() => {
+                console.log('🧪 Store state:', {
+                  player: player,
+                  assetsCount: Array.from(placedAssets.values()).length,
+                  definitionsCount: assetDefinitions.size,
+                  hasPreview: !!assetPreview
+                });
+              }}
+              className="w-full px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+            >
+              Log Store State
+            </button>
+            <button
+              onClick={() => {
+                if (player) {
+                  const testAmount = 1000;
+                  const originalCash = player.cash;
+                  updatePlayerCash(-testAmount);
+                  setTimeout(() => {
+                    const newCash = useEmpireStore.getState().player?.cash || 0;
+                    console.log('💰 Cash test:', { originalCash, newCash, difference: newCash - originalCash });
+                    updatePlayerCash(testAmount); // Restore
+                  }, 100);
+                }
+              }}
+              className="w-full px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600"
+            >
+              Test Cash Update
+            </button>
+          </div>
         </div>
       )}
     </div>

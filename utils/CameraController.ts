@@ -1,5 +1,13 @@
 import Phaser from 'phaser';
-import { CAMERA_CONFIG } from '../config/gameConfig';
+
+// Camera configuration constants
+const CAMERA_CONFIG = {
+  zoomMin: 0.5,
+  zoomMax: 2.0,
+  zoomStep: 0.1,
+  panSpeed: 5,
+  smoothFactor: 0.95
+};
 
 export class CameraController {
   private camera: Phaser.Cameras.Scene2D.Camera;
@@ -89,4 +97,4 @@ export class CameraController {
       this.camera.fadeIn(duration, red, green, blue);
     }
   }
-}
+} 

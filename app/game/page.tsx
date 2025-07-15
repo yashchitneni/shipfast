@@ -2,8 +2,18 @@
 
 import dynamic from 'next/dynamic';
 import GameUI from '../../components/GameUI';
-import { useEffect } from 'react';
-import { useGameStore } from '../../utils/store';
+import { AssetManager } from '../components/assets/AssetManager';
+import { useEffect, useState } from 'react';
+import { useEmpireStore } from '../../src/store/empireStore';
+import { loadAllAssetDefinitions, getMockPortNodes } from '../lib/assetLoader';
+import { realtimeAssetSync } from '../../lib/supabase/realtime-assets';
+
+// Type declaration for development testing
+declare global {
+  interface Window {
+    useEmpireStore?: typeof useEmpireStore;
+  }
+}
 
 // Dynamically import GameCanvas to avoid SSR issues with Phaser
 const GameCanvas = dynamic(() => import('../../components/GameCanvas'), {
@@ -16,17 +26,29 @@ const GameCanvas = dynamic(() => import('../../components/GameCanvas'), {
 });
 
 export default function GamePage() {
+  const [showAssetManager, setShowAssetManager] = useState(false);
+  const { loadAssetDefinitions, setPortNodes, setPlayerId, loadPlayerAssets } = useEmpireStore();
+
   useEffect(() => {
     // Initialize player data
-    const store = useGameStore.getState();
+    const store = useEmpireStore.getState();
+    
+    // Expose store to window for testing in development
+    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+      window.useEmpireStore = useEmpireStore;
+    }
+    
     if (!store.player) {
       store.setPlayer({
         id: 'player-1',
-        name: 'Captain',
+        username: 'Captain',
+        email: 'captain@example.com',
         cash: 50000,
-        reputation: 50,
         level: 1,
         experience: 0,
+        achievements: [],
+        createdAt: new Date(),
+        updatedAt: new Date()
       });
     }
 
@@ -37,12 +59,56 @@ export default function GamePage() {
       { good: 'Containers', price: 450, trend: 'stable', change: 0.3 },
       { good: 'Food', price: 320, trend: 'up', change: 3.7 },
     ]);
-  }, []);
+
+    // Initialize asset system
+    const initAssets = async () => {
+      // Load asset definitions
+      const definitions = await loadAllAssetDefinitions();
+      loadAssetDefinitions(definitions);
+      
+      // Set port nodes
+      setPortNodes(getMockPortNodes());
+      
+      // Set player ID (in production, this would come from auth)
+      // For now, we'll use a mock UUID that doesn't require auth
+      const playerId = '00000000-0000-0000-0000-000000000001';
+      setPlayerId(playerId);
+      
+      // Ensure player exists in database
+      const { assetService } = await import('../../lib/supabase/assets');
+      await assetService.ensurePlayerExists(playerId, 'Test Captain', 50000);
+      
+      // Load existing assets from database
+      await loadPlayerAssets();
+      
+      // Initialize real-time sync
+      await realtimeAssetSync.initialize('player-1');
+    };
+    
+    initAssets();
+    
+    // Cleanup on unmount
+    return () => {
+      realtimeAssetSync.cleanup();
+    };
+  }, [loadAssetDefinitions, setPortNodes, setPlayerId, loadPlayerAssets]);
 
   return (
     <div className="relative w-full h-screen overflow-hidden">
       <GameCanvas />
       <GameUI />
+      
+      {/* Asset Manager Toggle Button */}
+      <button
+        onClick={() => setShowAssetManager(!showAssetManager)}
+        className="fixed bottom-4 right-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2"
+      >
+        <span className="text-xl">🏗️</span>
+        <span>{showAssetManager ? 'Hide' : 'Show'} Assets</span>
+      </button>
+      
+      {/* Asset Manager */}
+      {showAssetManager && <AssetManager />}
     </div>
   );
 }

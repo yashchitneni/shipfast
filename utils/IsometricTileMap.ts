@@ -1,5 +1,17 @@
 import Phaser from 'phaser';
-import { ISOMETRIC_CONFIG, COLORS } from '../config/gameConfig';
+
+// Configuration constants
+const ISOMETRIC_CONFIG = {
+  tileWidth: 64,
+  tileHeight: 32
+};
+
+const COLORS = {
+  OCEAN_BLUE: 0x0077BE,
+  CARGO_GREEN: 0x00A652,
+  SHIPPING_RED: 0xE03C31,
+  NEUTRAL_GRAY: 0x808080
+};
 
 interface TileData {
   type: 'ocean' | 'land' | 'port';
@@ -296,4 +308,4 @@ export class IsometricTileMap {
       height: maxY - minY
     };
   }
-}
+} 

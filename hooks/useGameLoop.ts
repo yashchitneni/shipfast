@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useGameStore } from '../utils/store';
+import { useEmpireStore } from '../src/store/empireStore';
 
 interface UseGameLoopOptions {
   fps?: number;
@@ -12,8 +12,8 @@ export function useGameLoop(
 ) {
   const { fps = 60, paused = false } = options;
   const callbackRef = useRef(callback);
-  const frameRef = useRef<number>();
-  const lastTimeRef = useRef<number>();
+  const frameRef = useRef<number | undefined>(undefined);
+  const lastTimeRef = useRef<number | undefined>(undefined);
 
   // Update callback ref
   useEffect(() => {
@@ -60,9 +60,9 @@ export function useGameLoop(
 }
 
 export function useGameTime() {
-  const isPaused = useGameStore((state) => state.isPaused);
-  const gameSpeed = useGameStore((state) => state.gameSpeed);
-  const currentTime = useGameStore((state) => state.currentTime);
+  const isPaused = useEmpireStore((state: any) => state.isPaused);
+  const gameSpeed = useEmpireStore((state: any) => state.gameSpeed);
+  const currentTime = useEmpireStore((state: any) => state.currentTime);
 
   useGameLoop(
     (deltaTime) => {
@@ -70,7 +70,7 @@ export function useGameTime() {
         const newTime = new Date(
           currentTime.getTime() + deltaTime * gameSpeed
         );
-        useGameStore.setState({ currentTime: newTime });
+        useEmpireStore.setState({ currentTime: newTime });
       }
     },
     { paused: isPaused }

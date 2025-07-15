@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+import * as Phaser from 'phaser';
 import { SceneKeys, AssetKeys } from '../types/game';
 
 export default class PreloaderScene extends Phaser.Scene {

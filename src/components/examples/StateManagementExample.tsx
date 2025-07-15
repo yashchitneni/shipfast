@@ -107,7 +107,7 @@ export function StateManagementExample() {
       };
       
       // Add ship to store
-      store.addAsset(ship);
+      store.addAsset(ship as any);
       
       // Deduct cash
       store.updatePlayerCash(-shipCost);
@@ -166,7 +166,7 @@ export function StateManagementExample() {
       updatedAt: new Date()
     };
     
-    store.addRoute(route);
+    store.addRoute(route as any);
     
     store.addNotification({
       type: 'SUCCESS',

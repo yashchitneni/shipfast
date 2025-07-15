@@ -1,93 +1,216 @@
-import Phaser from 'phaser';
+import * as Phaser from 'phaser';
 import { SceneKeys, AssetKeys, GameEvents } from '../types/game';
-import { useGameStore } from '../utils/store';
+import { useEmpireStore } from '../src/store/empireStore';
+import { assetBridge } from '../utils/assetBridge';
+import { IsometricTileMap } from '../utils/IsometricTileMap';
+import { CameraController } from '../utils/CameraController';
+
+// Visual Style Guide colors
+const COLORS = {
+  OCEAN_BLUE: 0x0077BE,
+  OCEAN_BLUE_HEX: '#0077BE',
+  CARGO_GREEN: 0x00A652,
+  CARGO_GREEN_HEX: '#00A652',
+  SHIPPING_RED: 0xE03C31,
+  SHIPPING_RED_HEX: '#E03C31',
+  SUNSET_ORANGE: 0xFF6F61,
+  SUNSET_ORANGE_HEX: '#FF6F61',
+  NEUTRAL_GRAY: 0x808080,
+  NEUTRAL_GRAY_HEX: '#808080',
+  WHITE: 0xFFFFFF,
+  WHITE_HEX: '#FFFFFF',
+  BLACK: 0x000000,
+  BLACK_HEX: '#000000'
+};
+
+// Camera configuration
+const CAMERA_CONFIG = {
+  zoomMin: 0.5,
+  zoomMax: 2.0,
+  zoomStep: 0.1,
+  panSpeed: 5,
+  smoothFactor: 0.95
+};
 
 export default class WorldMapScene extends Phaser.Scene {
+  private isometricMap!: IsometricTileMap;
+  private cameraController!: CameraController;
+  private isDragging: boolean = false;
+  private dragStartX: number = 0;
+  private dragStartY: number = 0;
+  private cameraDragStartX: number = 0;
+  private cameraDragStartY: number = 0;
+  
+  // Lighting
+  private ambientLight!: Phaser.GameObjects.Rectangle;
+  private timeOfDay: number = 12; // 0-24 hours
+  
+  // Legacy ship and port system (for compatibility)
   private ports: Phaser.GameObjects.Image[] = [];
   private ships: Phaser.GameObjects.Image[] = [];
+  
+  // UI elements
   private selectedShip: Phaser.GameObjects.Image | null = null;
   private routeGraphics!: Phaser.GameObjects.Graphics;
-
+  private tooltip: Phaser.GameObjects.Text | null = null;
+  
   constructor() {
     super({ key: SceneKeys.WORLD_MAP });
   }
 
   create(): void {
-    const { width, height } = this.cameras.main;
-
-    // Create ocean background
-    this.add.tileSprite(0, 0, width * 2, height * 2, AssetKeys.MAP_OCEAN)
-      .setOrigin(0, 0);
-
+    // Create isometric map with procedural generation
+    this.isometricMap = new IsometricTileMap(this);
+    this.isometricMap.create();
+    
+    // Set up camera
+    this.setupCamera();
+    
+    // Create camera controller
+    this.cameraController = new CameraController(this.cameras.main);
+    
+    // Set up input handlers
+    this.setupInputHandlers();
+    
+    // Create lighting system
+    this.createLightingSystem();
+    
     // Create route graphics layer
     this.routeGraphics = this.add.graphics();
-
-    // Create sample ports
-    this.createSamplePorts();
-
-    // Create sample ships
-    this.createSampleShips();
-
-    // Setup camera
-    this.setupCamera();
-
-    // Setup input handlers
-    this.setupInputHandlers();
-
+    
+    // Initialize asset bridge with this scene
+    assetBridge.setScene(this);
+    
+    // Create UI overlay
+    this.createUIOverlay();
+    
     // Connect to Zustand store
     this.connectToStore();
+    
+    // Load player assets from database
+    this.loadPlayerAssets();
+    
+    // Set up asset bridge event listeners
+    this.setupAssetBridgeEvents();
   }
 
-  private createSamplePorts(): void {
-    const portData = [
-      { x: 200, y: 200, size: AssetKeys.PORT_LARGE, name: 'Los Angeles' },
-      { x: 800, y: 150, size: AssetKeys.PORT_MEDIUM, name: 'Shanghai' },
-      { x: 600, y: 400, size: AssetKeys.PORT_MEDIUM, name: 'Singapore' },
-      { x: 400, y: 350, size: AssetKeys.PORT_SMALL, name: 'Mumbai' },
-    ];
+  private setupCamera(): void {
+    const camera = this.cameras.main;
+    
+    // Set initial zoom
+    camera.setZoom(1);
+    
+    // Center on map
+    camera.centerOn(0, 0);
+    
+    // Set bounds (will be adjusted based on map size)
+    const mapBounds = this.isometricMap.getMapBounds();
+    camera.setBounds(
+      mapBounds.x - 500,
+      mapBounds.y - 500,
+      mapBounds.width + 1000,
+      mapBounds.height + 1000
+    );
+  }
 
-    portData.forEach((data) => {
-      const port = this.add.image(data.x, data.y, data.size)
-        .setInteractive()
-        .setData('name', data.name);
-
-      port.on('pointerover', () => {
-        port.setScale(1.1);
-        this.showTooltip(data.name, port.x, port.y - 40);
-      });
-
-      port.on('pointerout', () => {
-        port.setScale(1);
-        this.hideTooltip();
-      });
-
-      port.on('pointerdown', () => {
-        this.events.emit(GameEvents.PORT_SELECTED, data.name);
-        useGameStore.getState().setSelectedPort(data.name);
-      });
-
-      this.ports.push(port);
+  private setupInputHandlers(): void {
+    // Mouse wheel zoom
+    this.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: any[], deltaX: number, deltaY: number) => {
+      const camera = this.cameras.main;
+      const zoom = camera.zoom;
+      
+      if (deltaY > 0) {
+        // Zoom out
+        camera.setZoom(Math.max(CAMERA_CONFIG.zoomMin, zoom - CAMERA_CONFIG.zoomStep));
+      } else {
+        // Zoom in
+        camera.setZoom(Math.min(CAMERA_CONFIG.zoomMax, zoom + CAMERA_CONFIG.zoomStep));
+      }
     });
-  }
-
-  private createSampleShips(): void {
-    const shipData = [
-      { x: 250, y: 250, type: AssetKeys.SHIP_CARGO, id: 'ship-1' },
-      { x: 750, y: 200, type: AssetKeys.SHIP_TANKER, id: 'ship-2' },
-    ];
-
-    shipData.forEach((data) => {
-      const ship = this.add.image(data.x, data.y, data.type)
-        .setInteractive()
-        .setData('id', data.id);
-
-      ship.on('pointerdown', () => {
-        this.selectShip(ship);
-      });
-
-      this.ships.push(ship);
+    
+    // Mouse drag pan
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (pointer.leftButtonDown()) {
+        this.isDragging = true;
+        this.dragStartX = pointer.x;
+        this.dragStartY = pointer.y;
+        this.cameraDragStartX = this.cameras.main.scrollX;
+        this.cameraDragStartY = this.cameras.main.scrollY;
+      }
+      
+      // Right-click to create routes (legacy compatibility)
+      if (pointer.rightButtonDown() && this.selectedShip) {
+        this.createRoute(this.selectedShip.x, this.selectedShip.y, pointer.worldX, pointer.worldY);
+      }
     });
+    
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (this.isDragging && pointer.leftButtonDown()) {
+        const dragX = this.dragStartX - pointer.x;
+        const dragY = this.dragStartY - pointer.y;
+        
+        this.cameras.main.setScroll(
+          this.cameraDragStartX + dragX,
+          this.cameraDragStartY + dragY
+        );
+      }
+    });
+    
+    this.input.on('pointerup', () => {
+      this.isDragging = false;
+    });
+    
+    // Keyboard controls
+    const cursors = this.input.keyboard?.createCursorKeys();
+    if (cursors) {
+      this.cameraController.setCursors(cursors);
+    }
+    
+    // ESC to deselect
+    this.input.keyboard?.on('keydown-ESC', () => {
+      if (this.selectedShip) {
+        this.selectedShip.clearTint();
+        this.selectedShip = null;
+        useEmpireStore.getState().setSelectedShip(null);
+      }
+    });
+    
+    // Touch support for mobile
+    this.input.addPointer(2); // Support up to 3 touch points
   }
+
+  private createLightingSystem(): void {
+    const { width, height } = this.cameras.main;
+    
+    // Create ambient light overlay
+    this.ambientLight = this.add.rectangle(0, 0, width * 4, height * 4, 0x000000, 0.3);
+    this.ambientLight.setOrigin(0, 0);
+    this.ambientLight.setScrollFactor(0);
+    this.ambientLight.setDepth(1000);
+    
+    // Initial lighting update
+    this.updateLighting();
+  }
+
+  private updateLighting(): void {
+    // Calculate lighting based on time of day
+    let lightIntensity = 0.1;
+    
+    if (this.timeOfDay >= 6 && this.timeOfDay <= 18) {
+      // Day time (6 AM to 6 PM)
+      lightIntensity = 0.1;
+    } else if (this.timeOfDay >= 19 || this.timeOfDay <= 5) {
+      // Night time (7 PM to 5 AM)
+      lightIntensity = 0.5;
+    } else {
+      // Twilight
+      lightIntensity = 0.3;
+    }
+    
+    this.ambientLight.setAlpha(lightIntensity);
+  }
+
+
 
   private selectShip(ship: Phaser.GameObjects.Image): void {
     // Deselect previous ship
@@ -101,44 +224,7 @@ export default class WorldMapScene extends Phaser.Scene {
 
     const shipId = ship.getData('id');
     this.events.emit(GameEvents.SHIP_SELECTED, shipId);
-    useGameStore.getState().setSelectedShip(shipId);
-  }
-
-  private setupCamera(): void {
-    const camera = this.cameras.main;
-    camera.setBounds(0, 0, 1600, 1200);
-    
-    // Enable camera drag
-    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (pointer.isDown && pointer.rightButtonDown()) {
-        camera.scrollX -= pointer.velocity.x / camera.zoom;
-        camera.scrollY -= pointer.velocity.y / camera.zoom;
-      }
-    });
-
-    // Enable zoom
-    this.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: any[], deltaX: number, deltaY: number) => {
-      const zoom = camera.zoom;
-      camera.zoom = Phaser.Math.Clamp(zoom - deltaY * 0.001, 0.5, 2);
-    });
-  }
-
-  private setupInputHandlers(): void {
-    // Right-click to create routes
-    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (pointer.rightButtonDown() && this.selectedShip) {
-        this.createRoute(this.selectedShip.x, this.selectedShip.y, pointer.worldX, pointer.worldY);
-      }
-    });
-
-    // ESC to deselect
-    this.input.keyboard?.on('keydown-ESC', () => {
-      if (this.selectedShip) {
-        this.selectedShip.clearTint();
-        this.selectedShip = null;
-        useGameStore.getState().setSelectedShip(null);
-      }
-    });
+    useEmpireStore.getState().setSelectedShip(shipId);
   }
 
   private createRoute(startX: number, startY: number, endX: number, endY: number): void {
@@ -175,50 +261,124 @@ export default class WorldMapScene extends Phaser.Scene {
     }
   }
 
+  private createUIOverlay(): void {
+    // Create time display
+    const timeText = this.add.text(20, 20, '', {
+      fontSize: '16px',
+      color: '#ffffff',
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      padding: { x: 10, y: 5 }
+    });
+    timeText.setScrollFactor(0);
+    timeText.setDepth(2000);
+    
+    // Update time display
+    this.time.addEvent({
+      delay: 1000,
+      callback: () => {
+        const hours = Math.floor(this.timeOfDay);
+        const minutes = Math.floor((this.timeOfDay - hours) * 60);
+        timeText.setText(`Time: ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`);
+      },
+      loop: true
+    });
+    
+    // Create asset count display
+    const assetCountText = this.add.text(20, 60, '', {
+      fontSize: '14px',
+      color: '#ffffff',
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      padding: { x: 10, y: 5 }
+    });
+    assetCountText.setScrollFactor(0);
+    assetCountText.setDepth(2000);
+    
+    // Update asset count display
+    this.time.addEvent({
+      delay: 2000,
+      callback: () => {
+        const store = useEmpireStore.getState();
+        const assetCount = store.placedAssets.size;
+        assetCountText.setText(`Assets: ${assetCount}`);
+      },
+      loop: true
+    });
+  }
+
+  private loadPlayerAssets(): void {
+    // Load player assets from the empire store
+    const store = useEmpireStore.getState();
+    if (store.player?.id) {
+      store.loadPlayerAssets();
+    }
+  }
+
+  private setupAssetBridgeEvents(): void {
+    // Listen for asset selection events from the bridge
+    this.events.on('asset-selected', (assetId: string) => {
+      console.log('Asset selected in scene:', assetId);
+      // You can add additional visual feedback here
+    });
+  }
+
   private connectToStore(): void {
-    // Subscribe to store changes
-    const unsubscribe = useGameStore.subscribe((state) => {
-      // Update game based on state changes
+    // Subscribe to store changes for game state
+    const unsubscribe = useEmpireStore.subscribe((state) => {
+      // Handle pause/resume
       if (state.isPaused) {
         this.scene.pause();
       } else {
         this.scene.resume();
       }
+      
+      // Handle game speed changes
+      this.physics.world.timeScale = state.gameSpeed;
     });
-
-    // Cleanup on scene shutdown
-    this.events.once('shutdown', () => {
-      unsubscribe();
-    });
+    
+    // Store unsubscribe function for cleanup
+    this.events.once('shutdown', unsubscribe);
   }
-
-  private tooltipText: Phaser.GameObjects.Text | null = null;
-  private tooltipBg: Phaser.GameObjects.Rectangle | null = null;
 
   private showTooltip(text: string, x: number, y: number): void {
     this.hideTooltip();
 
-    this.tooltipBg = this.add.rectangle(x, y, text.length * 10 + 20, 30, 0x000000, 0.8)
-      .setStrokeStyle(2, 0xFFD700);
-    
-    this.tooltipText = this.add.text(x, y, text, {
+    this.tooltip = this.add.text(x, y, text, {
       fontSize: '14px',
       color: '#FFFFFF',
     }).setOrigin(0.5, 0.5);
   }
 
   private hideTooltip(): void {
-    this.tooltipText?.destroy();
-    this.tooltipBg?.destroy();
-    this.tooltipText = null;
-    this.tooltipBg = null;
+    this.tooltip?.destroy();
+    this.tooltip = null;
   }
 
   update(time: number, delta: number): void {
-    // Update ship animations
+    // Update camera controller
+    if (this.cameraController) {
+      this.cameraController.update(delta);
+    }
+    
+    // Update time of day (24-hour cycle over 10 minutes)
+    this.timeOfDay += 0.004; // Adjust speed as needed
+    if (this.timeOfDay >= 24) {
+      this.timeOfDay = 0;
+    }
+    
+    // Update lighting
+    if (Math.floor(time / 1000) % 1 === 0) {
+      this.updateLighting();
+    }
+    
+    // Update ship animations (legacy compatibility)
     this.ships.forEach((ship) => {
       // Add gentle bobbing effect
       ship.y += Math.sin(time * 0.001 + ship.x) * 0.1;
     });
+  }
+
+  shutdown(): void {
+    // Clean up asset bridge
+    assetBridge.destroy();
   }
 }

@@ -1,11 +1,11 @@
 'use client';
 
-import { useGameStore, usePlayer } from '../utils/store';
+import { useEmpireStore, usePlayer } from '../src/store/empireStore';
 import { useState } from 'react';
 
 export default function GameUI() {
   const player = usePlayer();
-  const { activePanel, setActivePanel, isPaused, setPaused } = useGameStore();
+  const { activePanel, setActivePanel, isPaused, setPaused } = useEmpireStore();
 
   return (
     <div className="absolute inset-0 pointer-events-none">
@@ -20,7 +20,7 @@ export default function GameUI() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-green-400">⭐</span>
-              <span className="font-bold">{player?.reputation || 0}</span>
+              <span className="font-bold">{player?.experience || 0}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-blue-400">📊</span>
@@ -121,7 +121,7 @@ function renderPanel(panel: string) {
 }
 
 function MarketPanel() {
-  const marketPrices = useGameStore((state) => state.marketPrices);
+  const marketPrices = useEmpireStore((state: any) => state.marketPrices);
   
   return (
     <div className="space-y-4">
@@ -129,7 +129,7 @@ function MarketPanel() {
       {marketPrices.length === 0 ? (
         <p className="text-gray-500">No market data available</p>
       ) : (
-        marketPrices.map((item) => (
+        marketPrices.map((item: any) => (
           <div key={item.good} className="bg-gray-700 p-3 rounded">
             <div className="flex justify-between items-center">
               <span>{item.good}</span>
@@ -148,7 +148,7 @@ function MarketPanel() {
 }
 
 function FleetPanel() {
-  const ships = useGameStore((state) => state.ships);
+  const ships = useEmpireStore((state: any) => state.ships);
   
   return (
     <div className="space-y-4">
@@ -156,7 +156,7 @@ function FleetPanel() {
       {ships.length === 0 ? (
         <p className="text-gray-500">No ships in your fleet</p>
       ) : (
-        ships.map((ship) => (
+        ships.map((ship: any) => (
           <div key={ship.id} className="bg-gray-700 p-3 rounded">
             <h3 className="font-bold">{ship.name}</h3>
             <div className="text-sm text-gray-400 mt-1">
@@ -172,7 +172,7 @@ function FleetPanel() {
 }
 
 function PortsPanel() {
-  const ports = useGameStore((state) => state.ports);
+  const ports = useEmpireStore((state: any) => state.ports);
   
   return (
     <div className="space-y-4">
@@ -180,7 +180,7 @@ function PortsPanel() {
       {ports.length === 0 ? (
         <p className="text-gray-500">Loading port data...</p>
       ) : (
-        ports.map((port) => (
+        ports.map((port: any) => (
           <div key={port.id} className="bg-gray-700 p-3 rounded">
             <h3 className="font-bold">{port.name}</h3>
             <p className="text-sm text-gray-400">Type: {port.type}</p>

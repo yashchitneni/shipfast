@@ -20,18 +20,48 @@ import {
   AssetType
 } from '../types/game';
 
+// Import asset types from the asset store
+import {
+  AssetDefinition,
+  PlacedAsset,
+  AssetPreview,
+  AssetValidation,
+  AssetStats,
+  AssetCategory,
+  PortNode,
+  Position
+} from '../../app/lib/types/assets';
+
+// Asset service for database operations
+import { assetService } from '../../lib/supabase/assets';
+
 // Store state interface
 export interface EmpireState {
   // Player data
   player: Player | null;
   
-  // Assets
+  // Assets - legacy structure from empireStore
   assets: {
     ships: Record<string, Ship>;
     planes: Record<string, Plane>;
     warehouses: Record<string, Warehouse>;
     specialists: Record<string, Specialist>;
   };
+  
+  // Asset management - from useAssetStore
+  assetDefinitions: Map<string, AssetDefinition>;
+  placedAssets: Map<string, PlacedAsset>;
+  assetPreview: AssetPreview | null;
+  portNodes: Map<string, PortNode>;
+  playerLicenses: string[];
+  
+  // Game state - from useGameStore
+  ships: Ship[];
+  ports: any[];
+  marketPrices: any[];
+  isPaused: boolean;
+  gameSpeed: number;
+  currentTime: Date;
   
   // Routes
   routes: Record<string, Route>;
@@ -56,6 +86,9 @@ export interface EmpireState {
   transactions: Transaction[];
   selectedAssetId: string | null;
   selectedRouteId: string | null;
+  selectedShip: string | null;
+  selectedPort: string | null;
+  activePanel: 'market' | 'fleet' | 'ports' | 'ai' | null;
   isLoading: boolean;
   error: string | null;
   
@@ -72,13 +105,49 @@ export interface EmpireActions {
   setPlayer: (player: Player) => void;
   updatePlayerCash: (amount: number) => void;
   updatePlayerExperience: (exp: number) => void;
+  setPlayerId: (id: string) => void;
+  setPlayerMoney: (amount: number) => void;
+  deductMoney: (amount: number) => Promise<boolean>;
+  setPlayerLevel: (level: number) => void;
+  addLicense: (license: string) => void;
   
-  // Asset actions
+  // Legacy asset actions
   addAsset: (asset: Asset) => void;
   updateAsset: (assetId: string, updates: Partial<Asset>) => void;
   removeAsset: (assetId: string) => void;
   assignAssetToRoute: (assetId: string, routeId: string) => void;
   unassignAssetFromRoute: (assetId: string) => void;
+  
+  // Asset management actions - from useAssetStore
+  loadAssetDefinitions: (definitions: AssetDefinition[]) => void;
+  setPortNodes: (ports: PortNode[]) => void;
+  loadPlayerAssets: () => Promise<void>;
+  startAssetPreview: (definitionId: string, position: Position) => void;
+  updateAssetPreview: (position: Position, rotation?: number) => void;
+  cancelAssetPreview: () => void;
+  placeAsset: () => Promise<{ success: boolean; error?: string }>;
+  removeAssetFromWorld: (assetId: string) => Promise<boolean>;
+  rotateAsset: (assetId: string, rotation: number) => Promise<void>;
+  assignAssetToRouteWorld: (assetId: string, routeId: string) => Promise<void>;
+  unassignAssetFromWorld: (assetId: string) => Promise<void>;
+  updateAssetStatus: (assetId: string, status: PlacedAsset['status']) => Promise<void>;
+  validateAssetPlacement: (definitionId: string, position: Position) => AssetValidation;
+  checkPortSnap: (position: Position, snapDistance?: number) => PortNode | null;
+  getAssetStats: () => AssetStats;
+  getAssetsByType: (type: any) => PlacedAsset[];
+  getAssetsByCategory: (category: AssetCategory) => PlacedAsset[];
+  getAssetsAtPort: (portId: string) => PlacedAsset[];
+  
+  // Game state actions - from useGameStore
+  addShip: (ship: Ship) => void;
+  updateShip: (id: string, updates: Partial<Ship>) => void;
+  removeShip: (id: string) => void;
+  updateMarketPrices: (prices: any[]) => void;
+  setSelectedShip: (id: string | null) => void;
+  setSelectedPort: (id: string | null) => void;
+  setActivePanel: (panel: 'market' | 'fleet' | 'ports' | 'ai' | null) => void;
+  setPaused: (paused: boolean) => void;
+  setGameSpeed: (speed: number) => void;
   
   // Route actions
   addRoute: (route: Route) => void;
@@ -143,6 +212,19 @@ const initialState: EmpireState = {
     warehouses: {},
     specialists: {}
   },
+  // Asset management state
+  assetDefinitions: new Map(),
+  placedAssets: new Map(),
+  assetPreview: null,
+  portNodes: new Map(),
+  playerLicenses: [],
+  // Game state
+  ships: [],
+  ports: [],
+  marketPrices: [],
+  isPaused: false,
+  gameSpeed: 1,
+  currentTime: new Date(),
   routes: {},
   activeRoutes: [],
   market: {
@@ -166,6 +248,9 @@ const initialState: EmpireState = {
   transactions: [],
   selectedAssetId: null,
   selectedRouteId: null,
+  selectedShip: null,
+  selectedPort: null,
+  activePanel: null,
   isLoading: false,
   error: null,
   history: {
@@ -176,6 +261,9 @@ const initialState: EmpireState = {
 
 // Helper function to generate unique IDs
 const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+// Snap distance for port snapping
+const SNAP_DISTANCE = 50;
 
 // Create the store
 export const useEmpireStore = create<EmpireState & EmpireActions>()(
@@ -190,12 +278,38 @@ export const useEmpireStore = create<EmpireState & EmpireActions>()(
             state.player = player;
           }),
           
+          setPlayerId: (id) => set((state) => {
+            if (state.player) {
+              state.player.id = id;
+            }
+          }),
+          
           updatePlayerCash: (amount) => set((state) => {
             if (state.player) {
               state.player.cash += amount;
               state.player.updatedAt = new Date();
             }
           }),
+          
+          setPlayerMoney: (amount) => set((state) => {
+            if (state.player) {
+              state.player.cash = amount;
+            }
+          }),
+          
+          deductMoney: async (amount) => {
+            const state = get();
+            if (!state.player || state.player.cash < amount) return false;
+            
+            // In a real implementation, this would sync with the database
+            // For now, we'll just update the local state
+            set((state) => {
+              if (state.player) {
+                state.player.cash -= amount;
+              }
+            });
+            return true;
+          },
           
           updatePlayerExperience: (exp) => set((state) => {
             if (state.player) {
@@ -216,7 +330,19 @@ export const useEmpireStore = create<EmpireState & EmpireActions>()(
             }
           }),
           
-          // Asset actions
+          setPlayerLevel: (level) => set((state) => {
+            if (state.player) {
+              state.player.level = level;
+            }
+          }),
+          
+          addLicense: (license) => set((state) => {
+            if (!state.playerLicenses.includes(license)) {
+              state.playerLicenses.push(license);
+            }
+          }),
+          
+          // Legacy asset actions
           addAsset: (asset) => set((state) => {
             switch (asset.type) {
               case AssetType.SHIP:
@@ -270,7 +396,7 @@ export const useEmpireStore = create<EmpireState & EmpireActions>()(
           
           unassignAssetFromRoute: (assetId) => set((state) => {
             // Remove from all routes
-            Object.values(state.routes).forEach(route => {
+            Object.values(state.routes).forEach((route) => {
               const index = route.assignedAssets.indexOf(assetId);
               if (index > -1) {
                 route.assignedAssets.splice(index, 1);
@@ -285,6 +411,453 @@ export const useEmpireStore = create<EmpireState & EmpireActions>()(
                 asset.updatedAt = new Date();
               }
             }
+          }),
+          
+          // Asset management actions - from useAssetStore
+          loadAssetDefinitions: (definitions) => set((state) => {
+            const defMap = new Map<string, AssetDefinition>();
+            definitions.forEach(def => defMap.set(def.id, def));
+            state.assetDefinitions = defMap;
+          }),
+          
+          setPortNodes: (ports) => set((state) => {
+            const portMap = new Map<string, PortNode>();
+            ports.forEach(port => portMap.set(port.id, port));
+            state.portNodes = portMap;
+          }),
+          
+          loadPlayerAssets: async () => {
+            const state = get();
+            if (!state.player?.id) return;
+            
+            // First, get player info to sync cash
+            const { data: player } = await assetService.getPlayer(state.player.id);
+            if (player) {
+              set((state) => {
+                if (state.player) {
+                  state.player.cash = player.cash;
+                }
+              });
+            }
+            
+            const { data, error } = await assetService.getPlayerAssets(state.player.id);
+            if (error) {
+              console.log('No existing assets found (this is normal for new players)');
+              return;
+            }
+            
+            if (data) {
+              const assetMap = new Map<string, PlacedAsset>();
+              data.forEach(dbAsset => {
+                const stats = dbAsset.stats as any;
+                const placedAsset: PlacedAsset = {
+                  id: dbAsset.asset_id,
+                  definitionId: stats.definitionId,
+                  ownerId: dbAsset.owner_id,
+                  position: stats.position,
+                  rotation: stats.rotation || 0,
+                  portId: stats.portId,
+                  routeId: dbAsset.assigned_route_id || undefined,
+                  status: stats.status || 'active',
+                  health: stats.health || 100,
+                  purchasedAt: stats.purchasedAt || new Date(dbAsset.created_at).getTime(),
+                  customName: dbAsset.custom_name || undefined
+                };
+                assetMap.set(placedAsset.id, placedAsset);
+              });
+              set((state) => {
+                state.placedAssets = assetMap;
+              });
+            }
+          },
+          
+          startAssetPreview: (definitionId, position) => {
+            const state = get();
+            const definition = state.assetDefinitions.get(definitionId);
+            if (!definition) return;
+            
+            const validation = state.validateAssetPlacement(definitionId, position);
+            const snapPort = state.checkPortSnap(position);
+            
+            set((state) => {
+              state.assetPreview = {
+                definitionId,
+                position,
+                rotation: 0,
+                isValid: validation.canAfford && validation.meetsRequirements && validation.hasValidPosition,
+                snapToPort: snapPort?.id,
+                validationErrors: validation.errors
+              };
+            });
+          },
+          
+          updateAssetPreview: (position, rotation) => {
+            const state = get();
+            if (!state.assetPreview) return;
+            
+            const validation = state.validateAssetPlacement(state.assetPreview.definitionId, position);
+            const snapPort = state.checkPortSnap(position);
+            
+            set((state) => {
+              if (state.assetPreview) {
+                state.assetPreview.position = snapPort ? snapPort.position : position;
+                state.assetPreview.rotation = rotation ?? state.assetPreview.rotation;
+                state.assetPreview.isValid = validation.canAfford && validation.meetsRequirements && validation.hasValidPosition;
+                state.assetPreview.snapToPort = snapPort?.id;
+                state.assetPreview.validationErrors = validation.errors;
+              }
+            });
+          },
+          
+          cancelAssetPreview: () => set((state) => {
+            state.assetPreview = null;
+          }),
+          
+          placeAsset: async () => {
+            const state = get();
+            const preview = state.assetPreview;
+            
+            if (!preview || !preview.isValid || !state.player?.id) {
+              return { success: false, error: 'Invalid placement' };
+            }
+            
+            const definition = state.assetDefinitions.get(preview.definitionId);
+            if (!definition) {
+              return { success: false, error: 'Asset definition not found' };
+            }
+            
+            // Deduct money from database
+            const { success: deductSuccess, error: deductError } = await assetService.deductPlayerCash(
+              state.player.id,
+              definition.cost
+            );
+            
+            if (!deductSuccess) {
+              return { success: false, error: deductError?.message || 'Insufficient funds' };
+            }
+            
+            // Create placed asset
+            const assetId = `asset-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            const placedAsset: PlacedAsset = {
+              id: assetId,
+              definitionId: preview.definitionId,
+              ownerId: state.player.id,
+              position: preview.position,
+              rotation: preview.rotation,
+              portId: preview.snapToPort,
+              status: 'active',
+              health: 100,
+              purchasedAt: Date.now()
+            };
+            
+            // Save to database
+            const { data, error } = await assetService.createAsset(placedAsset, definition, state.player.id);
+            
+            if (error) {
+              // Refund the money if asset creation failed
+              await assetService.addPlayerCash(state.player.id, definition.cost);
+              return { success: false, error: error.message || 'Failed to create asset' };
+            }
+            
+            // Update local state
+            set((state) => {
+              state.placedAssets.set(assetId, placedAsset);
+              state.assetPreview = null;
+              if (state.player) {
+                state.player.cash -= definition.cost;
+              }
+            });
+            
+            return { success: true };
+          },
+          
+          removeAssetFromWorld: async (assetId) => {
+            const state = get();
+            const asset = state.placedAssets.get(assetId);
+            if (!asset || !state.player?.id) return false;
+            
+            const definition = state.assetDefinitions.get(asset.definitionId);
+            if (!definition) return false;
+            
+            // Remove from database
+            const { error } = await assetService.deleteAsset(assetId);
+            if (error) {
+              console.error('Failed to delete asset:', error);
+              return false;
+            }
+            
+            // Refund partial value (50%)
+            const refund = Math.floor(definition.cost * 0.5);
+            await assetService.addPlayerCash(state.player.id, refund);
+            
+            // Remove from local state
+            set((state) => {
+              state.placedAssets.delete(assetId);
+              if (state.player) {
+                state.player.cash += refund;
+              }
+            });
+            
+            return true;
+          },
+          
+          rotateAsset: async (assetId, rotation) => {
+            const state = get();
+            const asset = state.placedAssets.get(assetId);
+            if (!asset) return;
+            
+            // Update database
+            await assetService.updateAsset(assetId, { rotation });
+            
+            // Update local state
+            set((state) => {
+              const asset = state.placedAssets.get(assetId);
+              if (asset) {
+                asset.rotation = rotation;
+                state.placedAssets.set(assetId, asset);
+              }
+            });
+          },
+          
+          assignAssetToRouteWorld: async (assetId, routeId) => {
+            const state = get();
+            const asset = state.placedAssets.get(assetId);
+            if (!asset) return;
+            
+            // Update database
+            await assetService.updateAsset(assetId, { routeId, status: 'transit' });
+            
+            // Update local state
+            set((state) => {
+              const asset = state.placedAssets.get(assetId);
+              if (asset) {
+                asset.routeId = routeId;
+                asset.status = 'transit';
+                state.placedAssets.set(assetId, asset);
+              }
+            });
+          },
+          
+          unassignAssetFromWorld: async (assetId) => {
+            const state = get();
+            const asset = state.placedAssets.get(assetId);
+            if (!asset) return;
+            
+            // Update database
+            await assetService.updateAsset(assetId, { routeId: undefined, status: 'active' });
+            
+            // Update local state
+            set((state) => {
+              const asset = state.placedAssets.get(assetId);
+              if (asset) {
+                asset.routeId = undefined;
+                asset.status = 'active';
+                state.placedAssets.set(assetId, asset);
+              }
+            });
+          },
+          
+          updateAssetStatus: async (assetId, status) => {
+            const state = get();
+            const asset = state.placedAssets.get(assetId);
+            if (!asset) return;
+            
+            // Update database
+            await assetService.updateAsset(assetId, { status });
+            
+            // Update local state
+            set((state) => {
+              const asset = state.placedAssets.get(assetId);
+              if (asset) {
+                asset.status = status;
+                state.placedAssets.set(assetId, asset);
+              }
+            });
+          },
+          
+          validateAssetPlacement: (definitionId, position) => {
+            const state = get();
+            const definition = state.assetDefinitions.get(definitionId);
+            
+            if (!definition) {
+              return {
+                canAfford: false,
+                meetsRequirements: false,
+                hasValidPosition: false,
+                noConflicts: false,
+                errors: ['Asset definition not found'],
+                warnings: []
+              };
+            }
+            
+            const errors: string[] = [];
+            const warnings: string[] = [];
+            
+            // Check money
+            const canAfford = (state.player?.cash || 0) >= definition.cost;
+            if (!canAfford) {
+              errors.push(`Insufficient funds. Need $${definition.cost.toLocaleString()}`);
+            }
+            
+            // Check requirements
+            let meetsRequirements = true;
+            if (definition.requirements) {
+              if (definition.requirements.minLevel && (state.player?.level || 0) < definition.requirements.minLevel) {
+                meetsRequirements = false;
+                errors.push(`Requires level ${definition.requirements.minLevel}`);
+              }
+              
+              if (definition.requirements.licenses) {
+                const missingLicenses = definition.requirements.licenses.filter(
+                  lic => !state.playerLicenses.includes(lic)
+                );
+                if (missingLicenses.length > 0) {
+                  meetsRequirements = false;
+                  errors.push(`Missing licenses: ${missingLicenses.join(', ')}`);
+                }
+              }
+            }
+            
+            // Check position validity (basic bounds check)
+            const hasValidPosition = position.x >= 0 && position.y >= 0;
+            if (!hasValidPosition) {
+              errors.push('Invalid position');
+            }
+            
+            // Check for conflicts (simplified - in real game would check overlaps)
+            const noConflicts = true;
+            
+            return {
+              canAfford,
+              meetsRequirements,
+              hasValidPosition,
+              noConflicts,
+              errors,
+              warnings
+            };
+          },
+          
+          checkPortSnap: (position, snapDistance = SNAP_DISTANCE) => {
+            const state = get();
+            
+            for (const port of state.portNodes.values()) {
+              const distance = Math.sqrt(
+                Math.pow(position.x - port.position.x, 2) + 
+                Math.pow(position.y - port.position.y, 2)
+              );
+              
+              if (distance <= snapDistance) {
+                return port;
+              }
+            }
+            
+            return null;
+          },
+          
+          getAssetStats: () => {
+            const state = get();
+            const assets = Array.from(state.placedAssets.values());
+            
+            const stats: AssetStats = {
+              totalAssets: assets.length,
+              assetsByType: {} as Record<any, number>,
+              assetsByCategory: {} as Record<AssetCategory, number>,
+              totalValue: 0,
+              totalMaintenance: 0,
+              utilizationRate: 0
+            };
+            
+            // Count assets and calculate totals
+            assets.forEach(asset => {
+              const definition = state.assetDefinitions.get(asset.definitionId);
+              if (!definition) return;
+              
+              // Count by type
+              stats.assetsByType[definition.type] = (stats.assetsByType[definition.type] || 0) + 1;
+              
+              // Count by category
+              stats.assetsByCategory[definition.category] = (stats.assetsByCategory[definition.category] || 0) + 1;
+              
+              // Add to totals
+              stats.totalValue += definition.cost;
+              stats.totalMaintenance += definition.maintenanceCost;
+            });
+            
+            // Calculate utilization (assets in transit vs total transport assets)
+            const transportAssets = assets.filter(a => {
+              const def = state.assetDefinitions.get(a.definitionId);
+              return def?.category === 'transport';
+            });
+            
+            const activeTransport = transportAssets.filter(a => a.status === 'transit').length;
+            stats.utilizationRate = transportAssets.length > 0 
+              ? activeTransport / transportAssets.length 
+              : 0;
+            
+            return stats;
+          },
+          
+          getAssetsByType: (type) => {
+            const state = get();
+            return Array.from(state.placedAssets.values()).filter(asset => {
+              const definition = state.assetDefinitions.get(asset.definitionId);
+              return definition?.type === type;
+            });
+          },
+          
+          getAssetsByCategory: (category) => {
+            const state = get();
+            return Array.from(state.placedAssets.values()).filter(asset => {
+              const definition = state.assetDefinitions.get(asset.definitionId);
+              return definition?.category === category;
+            });
+          },
+          
+          getAssetsAtPort: (portId) => {
+            const state = get();
+            return Array.from(state.placedAssets.values()).filter(
+              asset => asset.portId === portId
+            );
+          },
+          
+          // Game state actions - from useGameStore
+                     addShip: (ship: Ship) => set((state) => {
+             state.ships.push(ship);
+           }),
+           
+           updateShip: (id: string, updates: Partial<Ship>) => set((state) => {
+             const index = state.ships.findIndex((ship: Ship) => ship.id === id);
+             if (index !== -1) {
+               Object.assign(state.ships[index], updates);
+             }
+           }),
+          
+                     removeShip: (id: string) => set((state) => {
+             state.ships = state.ships.filter((ship: Ship) => ship.id !== id);
+           }),
+          
+          updateMarketPrices: (prices) => set((state) => {
+            state.marketPrices = prices;
+          }),
+          
+          setSelectedShip: (id) => set((state) => {
+            state.selectedShip = id;
+          }),
+          
+          setSelectedPort: (id) => set((state) => {
+            state.selectedPort = id;
+          }),
+          
+          setActivePanel: (panel) => set((state) => {
+            state.activePanel = panel;
+          }),
+          
+          setPaused: (paused) => set((state) => {
+            state.isPaused = paused;
+          }),
+          
+          setGameSpeed: (speed) => set((state) => {
+            state.gameSpeed = speed;
           }),
           
           // Route actions
@@ -621,12 +1194,47 @@ export const useEmpireStore = create<EmpireState & EmpireActions>()(
         partialize: (state) => ({
           player: state.player,
           assets: state.assets,
+          // Don't persist Maps - they don't serialize properly
+          // placedAssets: state.placedAssets,
+          // assetDefinitions: state.assetDefinitions,
+          // portNodes: state.portNodes,
           routes: state.routes,
           market: state.market,
           aiCompanion: state.aiCompanion,
-          settings: state.settings
-        })
+          settings: state.settings,
+          playerLicenses: state.playerLicenses
+        }),
+        // Rehydrate Maps properly
+        onRehydrateStorage: () => (state) => {
+          if (state) {
+            // Ensure Maps are properly initialized after rehydration
+            if (!state.placedAssets || typeof state.placedAssets.entries !== 'function') {
+              state.placedAssets = new Map();
+            }
+            if (!state.assetDefinitions || typeof state.assetDefinitions.get !== 'function') {
+              state.assetDefinitions = new Map();
+            }
+            if (!state.portNodes || typeof state.portNodes.get !== 'function') {
+              state.portNodes = new Map();
+            }
+          }
+        }
       }
     )
   )
 );
+
+// Selectors for common queries (maintaining compatibility with useGameStore)
+export const usePlayer = () => useEmpireStore((state) => state.player);
+export const useShips = () => useEmpireStore((state) => state.ships);
+export const usePorts = () => useEmpireStore((state) => state.ports);
+export const useMarketPrices = () => useEmpireStore((state) => state.marketPrices);
+export const useSelectedShip = () => {
+  const selectedId = useEmpireStore((state) => state.selectedShip);
+  const ships = useEmpireStore((state) => state.ships);
+  return ships.find((ship) => ship.id === selectedId);
+};
+
+// Export the store as useAssetStore and useGameStore for compatibility
+export const useAssetStore = useEmpireStore;
+export const useGameStore = useEmpireStore;

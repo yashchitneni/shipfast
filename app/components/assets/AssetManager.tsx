@@ -3,11 +3,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AssetPlacementUI } from './AssetPlacementUI';
 import { AssetPreview } from './AssetPreview';
-import { useAssetStore } from '../../store/useAssetStore';
+import { useEmpireStore } from '../../../src/store/empireStore';
 
 export const AssetManager: React.FC = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const { assetPreview, updateAssetPreview, placeAsset, cancelAssetPreview } = useAssetStore();
+  const { assetPreview, updateAssetPreview, placeAsset, cancelAssetPreview, player } = useEmpireStore();
 
   // Track mouse movement
   const handleMouseMove = useCallback((e: MouseEvent) => {
@@ -20,9 +20,9 @@ export const AssetManager: React.FC = () => {
   }, [assetPreview, updateAssetPreview]);
 
   // Handle clicks for placement
-  const handleClick = useCallback((e: MouseEvent) => {
+  const handleClick = useCallback(async (e: MouseEvent) => {
     if (assetPreview && assetPreview.isValid) {
-      placeAsset();
+      await placeAsset();
     }
   }, [assetPreview, placeAsset]);
 

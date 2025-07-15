@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useAssetStore } from '../../store/useAssetStore';
+import { useEmpireStore } from '../../../src/store/empireStore';
 import { AssetDefinition } from '../../lib/types/assets';
 
 interface AssetPreviewProps {
@@ -10,7 +10,7 @@ interface AssetPreviewProps {
 }
 
 export const AssetPreview: React.FC<AssetPreviewProps> = ({ mousePosition, isVisible }) => {
-  const { assetPreview, assetDefinitions } = useAssetStore();
+  const { assetPreview, assetDefinitions } = useEmpireStore();
   const [definition, setDefinition] = useState<AssetDefinition | null>(null);
 
   useEffect(() => {

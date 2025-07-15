@@ -82,8 +82,7 @@ CREATE POLICY "All users can view auctions" ON auction
 -- Players can view other players' basic info (for leaderboards)
 CREATE POLICY "Players can view other players basic info" ON player
     FOR SELECT TO authenticated 
-    USING (true)
-    WITH CHECK (auth.uid() = user_id);
+    USING (true);
 
 -- Create a view for public player stats (leaderboard)
 CREATE VIEW public_player_stats AS
