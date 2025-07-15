@@ -1,0 +1,31 @@
+{
+  "source": {
+    "include": ["lib", "components", "app"],
+    "includePattern": ".+\\.(js|jsx|ts|tsx)$",
+    "excludePattern": "(node_modules|.next|tests)"
+  },
+  "opts": {
+    "destination": "./docs/api",
+    "recurse": true,
+    "readme": "./README.md",
+    "template": "clean-jsdoc-theme"
+  },
+  "plugins": [
+    "plugins/markdown",
+    "node_modules/jsdoc-plugin-typescript"
+  ],
+  "templates": {
+    "cleverLinks": false,
+    "monospaceLinks": false,
+    "default": {
+      "outputSourceFiles": true
+    }
+  },
+  "typescript": {
+    "moduleResolution": "node"
+  },
+  "tags": {
+    "allowUnknownTags": true,
+    "dictionaries": ["jsdoc", "closure"]
+  }
+}

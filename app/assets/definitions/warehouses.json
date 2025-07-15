@@ -1,0 +1,82 @@
+{
+  "warehouses": [
+    {
+      "id": "warehouse-small",
+      "name": "Small Storage Facility",
+      "type": "warehouse",
+      "subType": "storage-facility",
+      "category": "storage",
+      "cost": 200000,
+      "maintenanceCost": 2000,
+      "capacity": 5000,
+      "efficiency": 0.80,
+      "description": "A basic storage facility for inventory management. Reduces spoilage and improves logistics.",
+      "requirements": {
+        "minLevel": 1
+      },
+      "bonuses": {
+        "riskReduction": 0.05
+      }
+    },
+    {
+      "id": "warehouse-medium",
+      "name": "Medium Storage Facility",
+      "type": "warehouse",
+      "subType": "storage-facility",
+      "category": "storage",
+      "cost": 500000,
+      "maintenanceCost": 5000,
+      "capacity": 15000,
+      "efficiency": 0.85,
+      "description": "An advanced storage facility with climate control and automated systems.",
+      "requirements": {
+        "minLevel": 3,
+        "licenses": ["warehouse-operations"]
+      },
+      "bonuses": {
+        "riskReduction": 0.08,
+        "efficiency": 0.05
+      }
+    },
+    {
+      "id": "warehouse-large",
+      "name": "Large Distribution Center",
+      "type": "warehouse",
+      "subType": "storage-facility",
+      "category": "storage",
+      "cost": 1000000,
+      "maintenanceCost": 10000,
+      "capacity": 30000,
+      "efficiency": 0.90,
+      "description": "A state-of-the-art distribution center with full automation and AI optimization.",
+      "requirements": {
+        "minLevel": 5,
+        "licenses": ["warehouse-operations", "automation-permit"]
+      },
+      "bonuses": {
+        "riskReduction": 0.10,
+        "efficiency": 0.10,
+        "capacity": 2000
+      }
+    },
+    {
+      "id": "warehouse-specialized",
+      "name": "Specialized Storage",
+      "type": "warehouse",
+      "subType": "storage-facility",
+      "category": "storage",
+      "cost": 750000,
+      "maintenanceCost": 7500,
+      "capacity": 10000,
+      "efficiency": 0.88,
+      "description": "Temperature-controlled storage for perishables and sensitive cargo.",
+      "requirements": {
+        "minLevel": 4,
+        "licenses": ["cold-chain", "warehouse-operations"]
+      },
+      "bonuses": {
+        "riskReduction": 0.15
+      }
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "infrastructure": [
+    {
+      "id": "route-sea-basic",
+      "name": "Basic Sea Route",
+      "type": "infrastructure",
+      "subType": "route",
+      "category": "support",
+      "cost": 50000,
+      "maintenanceCost": 500,
+      "efficiency": 0.70,
+      "description": "A basic shipping lane between two ports. Required for ship operations.",
+      "requirements": {
+        "minLevel": 1
+      }
+    },
+    {
+      "id": "route-sea-premium",
+      "name": "Premium Sea Route",
+      "type": "infrastructure",
+      "subType": "route",
+      "category": "support",
+      "cost": 150000,
+      "maintenanceCost": 1500,
+      "efficiency": 0.85,
+      "description": "An optimized shipping lane with priority access and weather monitoring.",
+      "requirements": {
+        "minLevel": 3,
+        "licenses": ["premium-routes"]
+      },
+      "bonuses": {
+        "speed": 10,
+        "riskReduction": 0.10
+      }
+    },
+    {
+      "id": "route-air-basic",
+      "name": "Basic Air Route",
+      "type": "infrastructure",
+      "subType": "route",
+      "category": "support",
+      "cost": 100000,
+      "maintenanceCost": 1000,
+      "efficiency": 0.75,
+      "description": "A standard air cargo route between airports. Required for plane operations.",
+      "requirements": {
+        "minLevel": 2,
+        "licenses": ["air-freight-basic"]
+      }
+    },
+    {
+      "id": "license-international",
+      "name": "International Shipping License",
+      "type": "infrastructure",
+      "subType": "license",
+      "category": "support",
+      "cost": 250000,
+      "maintenanceCost": 2500,
+      "efficiency": 1.0,
+      "description": "Permits operation on international routes. Opens access to global markets.",
+      "requirements": {
+        "minLevel": 3
+      },
+      "bonuses": {
+        "efficiency": 0.10
+      }
+    },
+    {
+      "id": "license-hazmat",
+      "name": "Hazardous Materials License",
+      "type": "infrastructure",
+      "subType": "license",
+      "category": "support",
+      "cost": 150000,
+      "maintenanceCost": 1500,
+      "efficiency": 1.0,
+      "description": "Permits transport of hazardous materials with higher profit margins.",
+      "requirements": {
+        "minLevel": 2
+      },
+      "bonuses": {
+        "riskReduction": 0.20
+      }
+    },
+    {
+      "id": "specialist-logistics",
+      "name": "Logistics Specialist",
+      "type": "infrastructure",
+      "subType": "specialist",
+      "category": "support",
+      "cost": 100000,
+      "maintenanceCost": 5000,
+      "efficiency": 1.0,
+      "description": "An expert who optimizes route efficiency and reduces operational costs.",
+      "requirements": {
+        "minLevel": 2
+      },
+      "bonuses": {
+        "efficiency": 0.15
+      }
+    },
+    {
+      "id": "specialist-ai-optimizer",
+      "name": "AI Route Optimizer",
+      "type": "infrastructure",
+      "subType": "specialist",
+      "category": "support",
+      "cost": 300000,
+      "maintenanceCost": 10000,
+      "efficiency": 1.0,
+      "description": "Advanced AI system that continuously optimizes all routes for maximum profit.",
+      "requirements": {
+        "minLevel": 5,
+        "licenses": ["automation-permit"]
+      },
+      "bonuses": {
+        "efficiency": 0.25,
+        "speed": 5
+      }
+    }
+  ]
+}

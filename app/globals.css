@@ -1,8 +1,32 @@
 @import "tailwindcss";
 
 :root {
+  /* Flexport Primary Colors */
+  --ocean-blue: #0077BE;
+  --cargo-green: #228B22;
+  --alert-red: #DC143C;
+  --gold-yellow: #FFD700;
+  --neutral-gray: #808080;
+  
+  /* Flexport Secondary Colors */
+  --port-orange: #FF4500;
+  --sky-blue: #87CEEB;
+  --earth-brown: #A0522D;
+  
+  /* Flexport UI Colors */
+  --dashboard-blue: #1E90FF;
+  --highlight-green: #32CD32;
+  --warning-yellow: #FFFF00;
+  
+  /* Base Colors */
   --background: #ffffff;
   --foreground: #171717;
+  
+  /* Game UI specific */
+  --hud-background: rgba(30, 144, 255, 0.1);
+  --hud-border: #1E90FF;
+  --panel-background: rgba(255, 255, 255, 0.95);
+  --panel-shadow: rgba(0, 0, 0, 0.1);
 }
 
 @theme inline {
@@ -10,17 +34,76 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  
+  /* Flexport colors for Tailwind */
+  --color-ocean-blue: var(--ocean-blue);
+  --color-cargo-green: var(--cargo-green);
+  --color-alert-red: var(--alert-red);
+  --color-gold-yellow: var(--gold-yellow);
+  --color-dashboard-blue: var(--dashboard-blue);
+  --color-highlight-green: var(--highlight-green);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --hud-background: rgba(30, 144, 255, 0.2);
+    --panel-background: rgba(10, 10, 10, 0.95);
   }
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+#game-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* Game UI Base Styles */
+.game-button {
+  @apply rounded-lg px-4 py-2 font-semibold transition-all duration-200 shadow-md hover:shadow-lg;
+}
+
+.game-panel {
+  @apply rounded-lg shadow-lg backdrop-blur-sm;
+  background: var(--panel-background);
+}
+
+.hud-element {
+  @apply rounded-md border-2;
+  background: var(--hud-background);
+  border-color: var(--hud-border);
+}
+
+/* Animations */
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
 }

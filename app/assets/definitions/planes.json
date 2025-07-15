@@ -1,0 +1,69 @@
+{
+  "planes": [
+    {
+      "id": "plane-cargo-small",
+      "name": "Small Cargo Aircraft",
+      "type": "plane",
+      "subType": "cargo-aircraft",
+      "category": "transport",
+      "cost": 800000,
+      "maintenanceCost": 8000,
+      "capacity": 200,
+      "speed": 500,
+      "range": 2000,
+      "efficiency": 0.65,
+      "description": "A small cargo plane for express deliveries. Fast but limited capacity.",
+      "requirements": {
+        "minLevel": 2
+      },
+      "bonuses": {
+        "speed": 50
+      }
+    },
+    {
+      "id": "plane-cargo-medium",
+      "name": "Medium Cargo Aircraft",
+      "type": "plane",
+      "subType": "cargo-aircraft",
+      "category": "transport",
+      "cost": 1500000,
+      "maintenanceCost": 15000,
+      "capacity": 500,
+      "speed": 550,
+      "range": 4000,
+      "efficiency": 0.70,
+      "description": "A versatile cargo aircraft for medium-range routes. Good balance of speed and capacity.",
+      "requirements": {
+        "minLevel": 3,
+        "licenses": ["air-freight-basic"]
+      },
+      "bonuses": {
+        "speed": 30,
+        "efficiency": 0.05
+      }
+    },
+    {
+      "id": "plane-cargo-large",
+      "name": "Large Cargo Aircraft",
+      "type": "plane",
+      "subType": "cargo-aircraft",
+      "category": "transport",
+      "cost": 3000000,
+      "maintenanceCost": 30000,
+      "capacity": 1000,
+      "speed": 600,
+      "range": 8000,
+      "efficiency": 0.75,
+      "description": "A heavy-lift cargo aircraft for long-range international routes. Maximum air freight capacity.",
+      "requirements": {
+        "minLevel": 5,
+        "licenses": ["air-freight-advanced", "international-aviation"]
+      },
+      "bonuses": {
+        "speed": 40,
+        "efficiency": 0.08,
+        "capacity": 100
+      }
+    }
+  ]
+}

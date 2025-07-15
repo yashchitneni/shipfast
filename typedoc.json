@@ -1,0 +1,52 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["./lib", "./components", "./app"],
+  "entryPointStrategy": "expand",
+  "out": "./docs/api-typescript",
+  "exclude": [
+    "**/node_modules/**",
+    "**/.next/**",
+    "**/tests/**",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ],
+  "includeVersion": true,
+  "categorizeByGroup": true,
+  "navigation": {
+    "includeCategories": true,
+    "includeGroups": true
+  },
+  "plugin": [
+    "typedoc-plugin-markdown",
+    "typedoc-plugin-missing-exports"
+  ],
+  "theme": "default",
+  "readme": "./README.md",
+  "gitRevision": "main",
+  "hideGenerator": true,
+  "searchInComments": true,
+  "preserveLinkText": true,
+  "blockTags": [
+    "@alpha",
+    "@beta", 
+    "@deprecated",
+    "@experimental",
+    "@internal",
+    "@override",
+    "@packageDocumentation",
+    "@public",
+    "@readonly",
+    "@sealed",
+    "@virtual"
+  ],
+  "inlineTags": [
+    "@link",
+    "@linkcode",
+    "@linkplain"
+  ],
+  "validation": {
+    "notExported": true,
+    "invalidLink": true,
+    "notDocumented": false
+  }
+}

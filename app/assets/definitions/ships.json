@@ -1,0 +1,112 @@
+{
+  "ships": [
+    {
+      "id": "ship-container-small",
+      "name": "Small Container Vessel",
+      "type": "ship",
+      "subType": "container-vessel",
+      "category": "transport",
+      "cost": 500000,
+      "maintenanceCost": 5000,
+      "capacity": 1000,
+      "speed": 20,
+      "range": 3000,
+      "efficiency": 0.75,
+      "description": "A small container ship suitable for regional routes. Good starting vessel for new logistics empires.",
+      "requirements": {
+        "minLevel": 1
+      },
+      "bonuses": {
+        "efficiency": 0.05
+      }
+    },
+    {
+      "id": "ship-container-medium",
+      "name": "Medium Container Vessel",
+      "type": "ship",
+      "subType": "container-vessel",
+      "category": "transport",
+      "cost": 1200000,
+      "maintenanceCost": 10000,
+      "capacity": 2500,
+      "speed": 22,
+      "range": 5000,
+      "efficiency": 0.80,
+      "description": "A versatile container ship for international trade routes. Balanced speed and capacity.",
+      "requirements": {
+        "minLevel": 3,
+        "licenses": ["international-shipping"]
+      },
+      "bonuses": {
+        "efficiency": 0.08,
+        "capacity": 100
+      }
+    },
+    {
+      "id": "ship-container-large",
+      "name": "Large Container Vessel",
+      "type": "ship",
+      "subType": "container-vessel",
+      "category": "transport",
+      "cost": 2500000,
+      "maintenanceCost": 20000,
+      "capacity": 5000,
+      "speed": 24,
+      "range": 8000,
+      "efficiency": 0.85,
+      "description": "A massive container ship for major trade routes. Maximum cargo capacity with advanced efficiency.",
+      "requirements": {
+        "minLevel": 5,
+        "licenses": ["international-shipping", "mega-vessel-permit"]
+      },
+      "bonuses": {
+        "efficiency": 0.10,
+        "capacity": 200,
+        "speed": 2
+      }
+    },
+    {
+      "id": "ship-tanker-small",
+      "name": "Small Tanker",
+      "type": "ship",
+      "subType": "tanker",
+      "category": "transport",
+      "cost": 600000,
+      "maintenanceCost": 6000,
+      "capacity": 800,
+      "speed": 18,
+      "range": 3500,
+      "efficiency": 0.70,
+      "description": "A small tanker for liquid cargo transport. Specialized for oil and chemical shipments.",
+      "requirements": {
+        "minLevel": 2,
+        "licenses": ["hazmat-basic"]
+      },
+      "bonuses": {
+        "riskReduction": 0.10
+      }
+    },
+    {
+      "id": "ship-tanker-large",
+      "name": "Large Tanker",
+      "type": "ship",
+      "subType": "tanker",
+      "category": "transport",
+      "cost": 1800000,
+      "maintenanceCost": 15000,
+      "capacity": 3000,
+      "speed": 20,
+      "range": 6000,
+      "efficiency": 0.75,
+      "description": "A large tanker for bulk liquid transport. Enhanced safety features for hazardous materials.",
+      "requirements": {
+        "minLevel": 4,
+        "licenses": ["hazmat-advanced", "international-shipping"]
+      },
+      "bonuses": {
+        "riskReduction": 0.15,
+        "efficiency": 0.05
+      }
+    }
+  ]
+}
