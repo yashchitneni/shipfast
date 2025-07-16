@@ -51,7 +51,7 @@ export const Panel: React.FC<PanelProps> = ({
                 </svg>
               </button>
             )}
-            <h3 className="text-lg font-semibold text-[--dashboard-blue]">{title}</h3>
+            <h3 className="text-lg font-semibold text-blue-600">{title}</h3>
           </div>
           {actions && <div className="flex items-center gap-2">{actions}</div>}
         </div>

@@ -5,8 +5,10 @@ export type AssetType = 'ship' | 'plane' | 'warehouse' | 'infrastructure';
 export type AssetSubType = 
   | 'container-vessel' 
   | 'tanker' 
-  | 'cargo-aircraft' 
+  | 'cargo-aircraft'
+  | 'passenger-aircraft' 
   | 'storage-facility'
+  | 'distribution-center'
   | 'route'
   | 'license'
   | 'specialist';
@@ -33,9 +35,10 @@ export interface AssetDefinition {
   category: AssetCategory;
   cost: number;
   maintenanceCost: number;
-  capacity?: number;
-  speed?: number;
-  range?: number;
+  capacity?: number; // For transport assets: cargo capacity
+  storageCapacity?: number; // For warehouses: storage capacity
+  speed?: number; // Movement speed for transport assets
+  range?: number; // Maximum range for planes/ships
   efficiency: number;
   description: string;
   requirements?: {
@@ -48,6 +51,12 @@ export interface AssetDefinition {
     speed?: number;
     capacity?: number;
     riskReduction?: number;
+    portEfficiencyBoost?: number; // Warehouse boost to nearby ports
+  };
+  areaEffect?: { // Area effect for warehouses
+    radius: number;
+    type: 'port_efficiency' | 'risk_reduction' | 'speed_boost';
+    value: number;
   };
 }
 
@@ -64,6 +73,8 @@ export interface PlacedAsset {
   purchasedAt: number;
   lastMaintenance?: number;
   customName?: string;
+  currentLoad?: number; // Current cargo/storage utilization
+  destination?: string; // For transport assets in transit
 }
 
 export interface AssetPreview {

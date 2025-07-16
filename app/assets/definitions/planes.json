@@ -64,6 +64,73 @@
         "efficiency": 0.08,
         "capacity": 100
       }
+    },
+    {
+      "id": "plane-passenger-small",
+      "name": "Regional Passenger Aircraft",
+      "type": "plane",
+      "subType": "cargo-aircraft",
+      "category": "transport",
+      "cost": 1200000,
+      "maintenanceCost": 12000,
+      "capacity": 100,
+      "speed": 450,
+      "range": 1500,
+      "efficiency": 0.60,
+      "description": "Small passenger aircraft for regional routes. Can carry express cargo and mail.",
+      "requirements": {
+        "minLevel": 3,
+        "licenses": ["passenger-aviation"]
+      },
+      "bonuses": {
+        "speed": 25,
+        "riskReduction": 0.05
+      }
+    },
+    {
+      "id": "plane-passenger-medium",
+      "name": "Commercial Airliner",
+      "type": "plane",
+      "subType": "cargo-aircraft",
+      "category": "transport",
+      "cost": 2500000,
+      "maintenanceCost": 25000,
+      "capacity": 250,
+      "speed": 550,
+      "range": 5000,
+      "efficiency": 0.65,
+      "description": "Medium-range commercial aircraft with dedicated cargo hold for mail and express freight.",
+      "requirements": {
+        "minLevel": 4,
+        "licenses": ["passenger-aviation", "international-aviation"]
+      },
+      "bonuses": {
+        "speed": 35,
+        "efficiency": 0.06,
+        "riskReduction": 0.08
+      }
+    },
+    {
+      "id": "plane-cargo-super",
+      "name": "Super Heavy Cargo Aircraft",
+      "type": "plane",
+      "subType": "cargo-aircraft",
+      "category": "transport",
+      "cost": 5000000,
+      "maintenanceCost": 50000,
+      "capacity": 2000,
+      "speed": 500,
+      "range": 10000,
+      "efficiency": 0.72,
+      "description": "The largest cargo aircraft available. Can transport oversized cargo and multiple containers.",
+      "requirements": {
+        "minLevel": 7,
+        "licenses": ["air-freight-advanced", "international-aviation", "heavy-aircraft"]
+      },
+      "bonuses": {
+        "capacity": 300,
+        "efficiency": 0.10
+      }
     }
   ]
 }

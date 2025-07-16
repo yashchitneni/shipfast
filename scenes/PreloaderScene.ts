@@ -102,6 +102,12 @@ export default class PreloaderScene extends Phaser.Scene {
     graphics.fillStyle(0x0077BE); // Ocean Blue
     graphics.fillRect(0, 0, 128, 128);
     graphics.generateTexture(AssetKeys.MAP_OCEAN, 128, 128);
+    graphics.clear();
+
+    // Ship icon for route visualization
+    graphics.fillStyle(0xFFFFFF); // White
+    graphics.fillTriangle(16, 0, 0, 32, 32, 32);
+    graphics.generateTexture('ship-icon', 32, 32);
 
     graphics.destroy();
   }

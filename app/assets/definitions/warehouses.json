@@ -9,6 +9,7 @@
       "cost": 200000,
       "maintenanceCost": 2000,
       "capacity": 5000,
+      "storageCapacity": 5000,
       "efficiency": 0.80,
       "description": "A basic storage facility for inventory management. Reduces spoilage and improves logistics.",
       "requirements": {
@@ -27,6 +28,7 @@
       "cost": 500000,
       "maintenanceCost": 5000,
       "capacity": 15000,
+      "storageCapacity": 15000,
       "efficiency": 0.85,
       "description": "An advanced storage facility with climate control and automated systems.",
       "requirements": {
@@ -47,6 +49,7 @@
       "cost": 1000000,
       "maintenanceCost": 10000,
       "capacity": 30000,
+      "storageCapacity": 30000,
       "efficiency": 0.90,
       "description": "A state-of-the-art distribution center with full automation and AI optimization.",
       "requirements": {
@@ -68,6 +71,7 @@
       "cost": 750000,
       "maintenanceCost": 7500,
       "capacity": 10000,
+      "storageCapacity": 10000,
       "efficiency": 0.88,
       "description": "Temperature-controlled storage for perishables and sensitive cargo.",
       "requirements": {
@@ -76,6 +80,82 @@
       },
       "bonuses": {
         "riskReduction": 0.15
+      }
+    },
+    {
+      "id": "warehouse-mega",
+      "name": "Mega Distribution Hub",
+      "type": "warehouse",
+      "subType": "storage-facility",
+      "category": "storage",
+      "cost": 2000000,
+      "maintenanceCost": 20000,
+      "capacity": 50000,
+      "storageCapacity": 50000,
+      "efficiency": 0.95,
+      "description": "A massive automated hub that serves as a regional distribution center. Boosts efficiency of nearby ports.",
+      "requirements": {
+        "minLevel": 7,
+        "licenses": ["warehouse-operations", "automation-permit", "regional-hub"]
+      },
+      "bonuses": {
+        "riskReduction": 0.12,
+        "efficiency": 0.15,
+        "capacity": 5000,
+        "portEfficiencyBoost": 0.10
+      },
+      "areaEffect": {
+        "radius": 200,
+        "type": "port_efficiency",
+        "value": 0.10
+      }
+    },
+    {
+      "id": "warehouse-distribution-small",
+      "name": "Local Distribution Center",
+      "type": "warehouse",
+      "subType": "storage-facility",
+      "category": "storage",
+      "cost": 350000,
+      "maintenanceCost": 3500,
+      "capacity": 8000,
+      "storageCapacity": 8000,
+      "efficiency": 0.83,
+      "description": "A local distribution center for last-mile delivery operations.",
+      "requirements": {
+        "minLevel": 2,
+        "licenses": ["distribution-permit"]
+      },
+      "bonuses": {
+        "speed": 10,
+        "efficiency": 0.03
+      }
+    },
+    {
+      "id": "warehouse-distribution-regional",
+      "name": "Regional Distribution Hub",
+      "type": "warehouse",
+      "subType": "storage-facility",
+      "category": "storage",
+      "cost": 1500000,
+      "maintenanceCost": 15000,
+      "capacity": 40000,
+      "storageCapacity": 40000,
+      "efficiency": 0.92,
+      "description": "A regional hub that coordinates distribution across multiple facilities. Provides area efficiency boost.",
+      "requirements": {
+        "minLevel": 6,
+        "licenses": ["warehouse-operations", "regional-hub", "distribution-permit"]
+      },
+      "bonuses": {
+        "efficiency": 0.12,
+        "capacity": 3000,
+        "portEfficiencyBoost": 0.08
+      },
+      "areaEffect": {
+        "radius": 150,
+        "type": "port_efficiency",
+        "value": 0.08
       }
     }
   ]

@@ -35,6 +35,9 @@ import {
 // Asset service for database operations
 import { assetService } from '../../lib/supabase/assets';
 
+// Asset effects service
+import { AssetEffectsService, AreaEffectResult } from '../../app/services/assetEffectsService';
+
 // Store state interface
 export interface EmpireState {
   // Player data
@@ -137,6 +140,11 @@ export interface EmpireActions {
   getAssetsByType: (type: any) => PlacedAsset[];
   getAssetsByCategory: (category: AssetCategory) => PlacedAsset[];
   getAssetsAtPort: (portId: string) => PlacedAsset[];
+  
+  // Area effects
+  calculateAreaEffects: () => Map<string, AreaEffectResult[]>;
+  getPortEfficiencyBoost: (portId: string) => number;
+  getWarehouseNetworkBonus: () => number;
   
   // Game state actions - from useGameStore
   addShip: (ship: Ship) => void;
@@ -820,6 +828,44 @@ export const useEmpireStore = create<EmpireState & EmpireActions>()(
             );
           },
           
+          // Area effects implementation
+          calculateAreaEffects: () => {
+            const state = get();
+            const placedAssets = Array.from(state.placedAssets.values());
+            const ports = Array.from(state.portNodes.values());
+            
+            return AssetEffectsService.calculateAreaEffects(
+              placedAssets,
+              state.assetDefinitions,
+              ports
+            );
+          },
+          
+          getPortEfficiencyBoost: (portId) => {
+            const state = get();
+            const areaEffects = get().calculateAreaEffects();
+            const cumulativeEffects = AssetEffectsService.getCumulativeEffects(
+              portId,
+              'port',
+              areaEffects
+            );
+            
+            return cumulativeEffects.get('port_efficiency') || 0;
+          },
+          
+          getWarehouseNetworkBonus: () => {
+            const state = get();
+            const warehouses = Array.from(state.placedAssets.values()).filter(asset => {
+              const definition = state.assetDefinitions.get(asset.definitionId);
+              return definition?.type === 'warehouse';
+            });
+            
+            return AssetEffectsService.calculateStorageNetworkBonus(
+              warehouses,
+              state.assetDefinitions
+            );
+          },
+          
           // Game state actions - from useGameStore
                      addShip: (ship: Ship) => set((state) => {
              state.ships.push(ship);
@@ -1238,3 +1284,7 @@ export const useSelectedShip = () => {
 // Export the store as useAssetStore and useGameStore for compatibility
 export const useAssetStore = useEmpireStore;
 export const useGameStore = useEmpireStore;
+
+// Note: Route system has been extracted to a dedicated store
+// Import and use useRouteStore from app/store/useRouteStore.ts for route management
+// The route actions in empireStore are maintained for backward compatibility

@@ -2,8 +2,11 @@ import * as Phaser from 'phaser';
 import { SceneKeys, AssetKeys, GameEvents } from '../types/game';
 import { useEmpireStore } from '../src/store/empireStore';
 import { assetBridge } from '../utils/assetBridge';
+import { routeBridge } from '../utils/routeBridge';
+import { portBridge } from '../utils/portBridge';
 import { IsometricTileMap } from '../utils/IsometricTileMap';
 import { CameraController } from '../utils/CameraController';
+import { useRouteStore } from '../app/store/useRouteStore';
 
 // Visual Style Guide colors
 const COLORS = {
@@ -35,6 +38,7 @@ const CAMERA_CONFIG = {
 export default class WorldMapScene extends Phaser.Scene {
   private isometricMap!: IsometricTileMap;
   private cameraController!: CameraController;
+  private routeRenderSystem!: RouteRenderSystem;
   private isDragging: boolean = false;
   private dragStartX: number = 0;
   private dragStartY: number = 0;
@@ -81,6 +85,15 @@ export default class WorldMapScene extends Phaser.Scene {
     // Initialize asset bridge with this scene
     assetBridge.setScene(this);
     
+    // Initialize route bridge with this scene
+    routeBridge.setScene(this);
+    
+    // Initialize port bridge with this scene
+    portBridge.setScene(this);
+    
+    // Get route render system from bridge
+    this.routeRenderSystem = routeBridge.getRouteRenderSystem()!;
+    
     // Create UI overlay
     this.createUIOverlay();
     
@@ -92,6 +105,9 @@ export default class WorldMapScene extends Phaser.Scene {
     
     // Set up asset bridge event listeners
     this.setupAssetBridgeEvents();
+    
+    // Set up route bridge event listeners
+    this.setupRouteBridgeEvents();
   }
 
   private setupCamera(): void {
@@ -320,6 +336,36 @@ export default class WorldMapScene extends Phaser.Scene {
       // You can add additional visual feedback here
     });
   }
+  
+  private setupRouteBridgeEvents(): void {
+    // Listen for route selection events
+    this.events.on('route-selected', (routeId: string) => {
+      console.log('Route selected in scene:', routeId);
+    });
+    
+    // Listen for active route events
+    this.events.on('route-active', (data: { routeId: string; state: any }) => {
+      console.log('Route active:', data.routeId);
+    });
+    
+    // Handle port clicks for route creation
+    this.input.on('gameobjectdown', (pointer: Phaser.Input.Pointer, gameObject: any) => {
+      if (gameObject.getData('type') === 'port') {
+        const portId = gameObject.getData('id');
+        const routeStore = useRouteStore.getState();
+        
+        if (routeStore.routeCreationMode) {
+          if (!routeStore.routePreview) {
+            // Start route creation
+            routeBridge.startRouteCreation(portId);
+          } else {
+            // Complete route creation
+            routeBridge.updateRoutePreview(portId);
+          }
+        }
+      }
+    });
+  }
 
   private connectToStore(): void {
     // Subscribe to store changes for game state
@@ -359,6 +405,11 @@ export default class WorldMapScene extends Phaser.Scene {
       this.cameraController.update(delta);
     }
     
+    // Update route render system
+    if (this.routeRenderSystem) {
+      this.routeRenderSystem.update(time, delta);
+    }
+    
     // Update time of day (24-hour cycle over 10 minutes)
     this.timeOfDay += 0.004; // Adjust speed as needed
     if (this.timeOfDay >= 24) {
@@ -380,5 +431,11 @@ export default class WorldMapScene extends Phaser.Scene {
   shutdown(): void {
     // Clean up asset bridge
     assetBridge.destroy();
+    
+    // Clean up route bridge (which includes route render system)
+    routeBridge.destroy();
+    
+    // Clean up port bridge
+    portBridge.destroy();
   }
 }

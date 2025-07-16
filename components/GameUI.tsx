@@ -2,6 +2,13 @@
 
 import { useEmpireStore, usePlayer } from '../src/store/empireStore';
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
+
+// Dynamically import the new UI components
+const MarketTradingPanel = dynamic(() => import('../app/components/market/MarketTradingPanel'), { ssr: false });
+const RouteManager = dynamic(() => import('./RouteManager'), { ssr: false });
+const FinancialDashboard = dynamic(() => import('../app/components/finance/FinancialDashboard'), { ssr: false });
+const AICompanionPanel = dynamic(() => import('../app/components/ai/AICompanionPanel'), { ssr: false });
 
 export default function GameUI() {
   const player = usePlayer();
@@ -45,12 +52,24 @@ export default function GameUI() {
 
       {/* Bottom Panel Buttons */}
       <div className="absolute bottom-0 left-0 right-0 bg-gray-900/90 p-4 pointer-events-auto">
-        <div className="flex justify-center gap-4 max-w-4xl mx-auto">
+        <div className="flex justify-center gap-4 max-w-6xl mx-auto">
+          <PanelButton
+            label="Routes"
+            icon="🗺️"
+            active={activePanel === 'routes'}
+            onClick={() => setActivePanel(activePanel === 'routes' ? null : 'routes')}
+          />
           <PanelButton
             label="Market"
             icon="📈"
             active={activePanel === 'market'}
             onClick={() => setActivePanel(activePanel === 'market' ? null : 'market')}
+          />
+          <PanelButton
+            label="Finance"
+            icon="💰"
+            active={activePanel === 'finance'}
+            onClick={() => setActivePanel(activePanel === 'finance' ? null : 'finance')}
           />
           <PanelButton
             label="Fleet"
@@ -75,9 +94,10 @@ export default function GameUI() {
 
       {/* Side Panels */}
       {activePanel && (
-        <div className="absolute top-20 bottom-20 right-0 w-96 bg-gray-800/95 text-white p-6 pointer-events-auto overflow-y-auto">
-          <h2 className="text-2xl font-bold mb-4 capitalize">{activePanel}</h2>
-          {renderPanel(activePanel)}
+        <div className="absolute top-20 bottom-20 right-0 w-[500px] bg-white shadow-2xl pointer-events-auto overflow-hidden">
+          <div className="h-full p-6">
+            {renderPanel(activePanel)}
+          </div>
         </div>
       )}
     </div>
@@ -107,44 +127,21 @@ function PanelButton({ label, icon, active, onClick }: {
 
 function renderPanel(panel: string) {
   switch (panel) {
+    case 'routes':
+      return <RouteManager />;
     case 'market':
-      return <MarketPanel />;
+      return <MarketTradingPanel />;
+    case 'finance':
+      return <FinancialDashboard />;
     case 'fleet':
       return <FleetPanel />;
     case 'ports':
       return <PortsPanel />;
     case 'ai':
-      return <AIPanel />;
+      return <AICompanionPanel />;
     default:
       return null;
   }
-}
-
-function MarketPanel() {
-  const marketPrices = useEmpireStore((state: any) => state.marketPrices);
-  
-  return (
-    <div className="space-y-4">
-      <p className="text-gray-400">Current market prices and trends</p>
-      {marketPrices.length === 0 ? (
-        <p className="text-gray-500">No market data available</p>
-      ) : (
-        marketPrices.map((item: any) => (
-          <div key={item.good} className="bg-gray-700 p-3 rounded">
-            <div className="flex justify-between items-center">
-              <span>{item.good}</span>
-              <div className="flex items-center gap-2">
-                <span className="font-bold">${item.price}</span>
-                <span className={item.trend === 'up' ? 'text-green-400' : 'text-red-400'}>
-                  {item.trend === 'up' ? '↑' : '↓'} {item.change}%
-                </span>
-              </div>
-            </div>
-          </div>
-        ))
-      )}
-    </div>
-  );
 }
 
 function FleetPanel() {

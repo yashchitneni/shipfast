@@ -24,15 +24,15 @@ export const Button: React.FC<ButtonProps> = ({
   const getVariantStyles = () => {
     switch (variant) {
       case 'primary':
-        return 'bg-[--dashboard-blue] hover:bg-[--ocean-blue] text-white';
+        return 'bg-blue-600 hover:bg-blue-700 text-white';
       case 'secondary':
-        return 'bg-[--neutral-gray] hover:bg-gray-600 text-white';
+        return 'bg-gray-600 hover:bg-gray-700 text-white';
       case 'success':
-        return 'bg-[--cargo-green] hover:bg-green-700 text-white';
+        return 'bg-green-600 hover:bg-green-700 text-white';
       case 'danger':
-        return 'bg-[--alert-red] hover:bg-red-700 text-white';
+        return 'bg-red-600 hover:bg-red-700 text-white';
       case 'warning':
-        return 'bg-[--warning-yellow] hover:bg-yellow-600 text-black';
+        return 'bg-yellow-500 hover:bg-yellow-600 text-black';
       default:
         return '';
     }

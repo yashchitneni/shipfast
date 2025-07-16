@@ -7,11 +7,21 @@ import { useEffect, useState } from 'react';
 import { useEmpireStore } from '../../src/store/empireStore';
 import { loadAllAssetDefinitions, getMockPortNodes } from '../lib/assetLoader';
 import { realtimeAssetSync } from '../../lib/supabase/realtime-assets';
+import { systemIntegration } from '../lib/game/system-integration';
+import { useRouteStore } from '../store/useRouteStore';
+import { useEconomyStore } from '../store/useEconomyStore';
+import { useMarketStore } from '../store/useMarketStore';
+import { useAIStore } from '../store/useAIStore';
 
 // Type declaration for development testing
 declare global {
   interface Window {
     useEmpireStore?: typeof useEmpireStore;
+    useRouteStore?: typeof useRouteStore;
+    useEconomyStore?: typeof useEconomyStore;
+    useMarketStore?: typeof useMarketStore;
+    useAIStore?: typeof useAIStore;
+    systemIntegration?: typeof systemIntegration;
   }
 }
 
@@ -33,9 +43,14 @@ export default function GamePage() {
     // Initialize player data
     const store = useEmpireStore.getState();
     
-    // Expose store to window for testing in development
+    // Expose stores and integration to window for testing in development
     if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
       window.useEmpireStore = useEmpireStore;
+      window.useRouteStore = useRouteStore;
+      window.useEconomyStore = useEconomyStore;
+      window.useMarketStore = useMarketStore;
+      window.useAIStore = useAIStore;
+      window.systemIntegration = systemIntegration;
     }
     
     if (!store.player) {
@@ -83,6 +98,19 @@ export default function GamePage() {
       
       // Initialize real-time sync
       await realtimeAssetSync.initialize('player-1');
+      
+      // Initialize Phase 2 systems
+      try {
+        await systemIntegration.initialize(playerId);
+        console.log('Phase 2 systems integrated:', systemIntegration.getStatus());
+        
+        // Load player routes
+        const routeStore = useRouteStore.getState();
+        await routeStore.loadPlayerRoutes(playerId);
+        console.log('Routes loaded');
+      } catch (error) {
+        console.error('Failed to initialize Phase 2 systems:', error);
+      }
     };
     
     initAssets();
@@ -90,6 +118,7 @@ export default function GamePage() {
     // Cleanup on unmount
     return () => {
       realtimeAssetSync.cleanup();
+      systemIntegration.cleanup();
     };
   }, [loadAssetDefinitions, setPortNodes, setPlayerId, loadPlayerAssets]);
 

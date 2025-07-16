@@ -41,9 +41,23 @@ export const AssetPreview: React.FC<AssetPreviewProps> = ({ mousePosition, isVis
       case 'ship':
         return '🚢';
       case 'plane':
-        return '✈️';
+        // Different icons for different plane types
+        if (definition.id.includes('passenger')) {
+          return '🛩️'; // Passenger plane
+        } else if (definition.id.includes('super')) {
+          return '🛫'; // Large cargo plane
+        }
+        return '✈️'; // Standard cargo plane
       case 'warehouse':
-        return '🏭';
+        // Different icons for different warehouse types
+        if (definition.id.includes('mega')) {
+          return '🏗️'; // Mega distribution hub
+        } else if (definition.id.includes('distribution')) {
+          return '📦'; // Distribution center
+        } else if (definition.id.includes('specialized')) {
+          return '❄️'; // Cold storage
+        }
+        return '🏭'; // Standard warehouse
       case 'infrastructure':
         return definition.subType === 'route' ? '〰️' : '📜';
       default:
