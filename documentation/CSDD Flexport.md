@@ -1,16 +1,32 @@
 # **Core Systems Design Document (CSDD)**
 
-Version: 1.3 (Definitive Expansive Mechanics)  
-Date: July 14, 2025  
-Game: Flexport \- The Video Game
+Version: 2.0 (Implementation Status Update)  
+Date: July 16, 2025  
+Game: Flexport - The Video Game  
+Status: Mixed Implementation - Integration Required
 
 ### **1\. Introduction**
 
 This document provides the definitive, expansive logic for the game's core systems. It translates the GDD's vision into precise, developer-ready rules, formulas, and state definitions designed for AI-assisted code generation. This is the "Mechanics Bible" for the project.
 
+**⚠️ CRITICAL IMPLEMENTATION STATUS:**
+- 🔴 **BLOCKED**: Most systems cannot function until UI components are connected to live data stores
+- 🟡 **PARTIAL**: Some systems have database schemas but no runtime implementation
+- 🟢 **WORKING**: Only basic asset placement and camera controls are fully functional
+
+**Legend:**
+- ✅ Fully Implemented & Working
+- 🟡 Schema/Store Exists (No Integration)
+- 🔴 Not Implemented
+- 🚧 Placeholder/Mock Data Only
+
 ### **2\. Multiplayer Systems & Real-time Interaction**
 
-**Status: Design Phase (Future Implementation)**
+**Implementation Status: 🔴 Not Implemented**
+- No multiplayer infrastructure
+- No real-time synchronization
+- No auction system
+- Single-player only at this stage
 
 All players inhabit a single, persistent, shared world. The multiplayer experience is designed around a mix of constant indirect competition and punctuated moments of direct, high-stakes interaction.
 
@@ -36,9 +52,20 @@ All players inhabit a single, persistent, shared world. The multiplayer experien
 
 ### **3\. The Four Markets: Expansive Logic**
 
-**Status: Partially Implemented (Goods & Asset Markets)**
+**Overall Implementation Status:**
+- 🟡 **Goods Market**: Schema exists, UI using mock data
+- ✅ **Asset Market**: Basic placement working, no marketplace
+- 🔴 **Capital Market**: Not implemented
+- 🟡 **Labor Market**: Schema only
 
 **a. Goods Market**
+
+**Implementation Status:**
+- ✅ Database schema complete (market_items, price_history, transactions)
+- 🟡 useMarketStore exists but not connected to UI
+- 🚧 MarketTradingPanel using MOCK_MARKET_ITEMS
+- 🔴 No price calculation engine running
+- 🔴 No supply/demand simulation
 
 * **Price Formula:** Price \= (BaseCost \+ ProductionCostModifier) \* (Demand / Supply) \* (1 \+ VolatilityModifier)  
   * ProductionCostModifier: Rises if a key raw material for this good is in short supply.  
@@ -62,7 +89,11 @@ All players inhabit a single, persistent, shared world. The multiplayer experien
 
 **b. Capital Market**
 
-**Status: Design Phase (Future Implementation)**
+**Implementation Status: 🔴 Not Implemented**
+- No loan system
+- No credit rating
+- No interest calculations
+- No financial instruments
 
 * **Debt Logic & Credit Rating:** A player's "Credit Rating" (from D to AAA) is calculated based on their debt-to-asset ratio and payment history. A higher rating unlocks larger loans at lower interest rates. Missing a payment lowers the rating.  
 * **Equity Logic:** Valuation \= (NetWorth \* 1.5) \+ (GrowthRate \* 10000). Selling more than 49% of your company triggers a "Hostile Takeover" risk from AI firms or other players.  
@@ -72,7 +103,13 @@ All players inhabit a single, persistent, shared world. The multiplayer experien
 
 **c. Asset Market**
 
-**Status: Implemented (Phase 1)**
+**Implementation Status:**
+- ✅ Asset placement in Phaser working
+- ✅ Asset persistence to database
+- ✅ Basic asset types (ships, planes, warehouses)
+- 🔴 No asset marketplace UI
+- 🔴 No asset trading between players
+- 🔴 No asset upgrades/modules
 
 * **Asset Stats:**  
   * Speed, Capacity, FuelEfficiency  
@@ -83,7 +120,12 @@ All players inhabit a single, persistent, shared world. The multiplayer experien
 
 **d. Labor Market**
 
-**Status: Partially Implemented (Schema Only)**
+**Implementation Status:**
+- ✅ Database schema exists (specialist, player_specialists)
+- 🟡 Basic specialist types defined
+- 🔴 No UI for hiring specialists
+- 🔴 No specialist effects implemented
+- 🔴 No poaching mechanic
 
 * **Expanded Specialist Roles:**
 
@@ -100,7 +142,11 @@ All players inhabit a single, persistent, shared world. The multiplayer experien
 
 ### **4\. Core Gameplay Formulas & Systems**
 
-**Status: Partially Implemented**
+**Implementation Status:**
+- 🔴 No compounding growth calculations
+- 🔴 No disaster system
+- 🟡 Route system has schema but no visualization
+- 🚧 FinancialDashboard shows mock calculations only
 
 **a. Compounding Growth Formula**
 
@@ -124,7 +170,13 @@ All players inhabit a single, persistent, shared world. The multiplayer experien
 
 ### **5\. Player-Trained AI Companion Logic**
 
-**Status: Partially Implemented (Schema Only)**
+**Implementation Status:**
+- ✅ Complete database schema (ai_companions, ai_route_patterns, etc.)
+- ✅ Experience and leveling functions in database
+- 🔴 No UI for AI companion
+- 🔴 No training logic implemented
+- 🔴 No AI suggestions generated
+- 🔴 No integration with game systems
 
 * **Training & Learning:** The AI learns from specific data points on its assigned route: profit\_per\_day, time\_on\_route, disasters\_encountered, cargo\_type.  
 * **AI Levels & Abilities:**  
@@ -137,6 +189,45 @@ All players inhabit a single, persistent, shared world. The multiplayer experien
 
 ### **6\. Scenarios & Edge Cases**
 
+**Implementation Status: 🔴 Not Implemented**
+- No bankruptcy system
+- No monopoly mechanics  
+- No special handling for new/returning players
+
 * **Bankruptcy:** If a player's cash goes below a certain threshold (e.g., \-$50,000), they are offered a high-interest "bailout" loan. If they cannot recover, their assets are liquidated, and it's game over.  
 * **Monopoly:** If a player successfully controls over 80% of the supply of a specific good, they can trigger "Monopoly Pricing," allowing them to manually set the price for a short period for massive profits, but this risks a "Government Intervention" disaster event.  
 * **New & Returning Players:** A new player entering a world that has been running for months will start in a less competitive, emerging market region to allow them to catch up. Returning players' assets will have accrued maintenance costs and may have been affected by disasters that occurred while they were offline.
+
+### **7\. Implementation Summary**
+
+**Working Systems (Can Use Now):**
+- ✅ Basic asset placement and movement in Phaser
+- ✅ Camera controls and world navigation
+- ✅ Asset persistence to database
+- ✅ User authentication via Supabase
+
+**Database Ready (Schema Only - No Runtime):**
+- 🟡 Market system tables (market_items, transactions, price_history)
+- 🟡 AI companion tables (full schema implemented)
+- 🟡 Route system tables
+- 🟡 Specialist/labor tables
+
+**UI Built But Disconnected (Using Mock Data):**
+- 🚧 MarketTradingPanel - shows MOCK_MARKET_ITEMS
+- 🚧 FinancialDashboard - shows mock revenue/expenses
+- 🚧 RouteManager - shows MOCK_ROUTES
+
+**Not Implemented At All:**
+- 🔴 Multiplayer infrastructure
+- 🔴 Real-time price calculations
+- 🔴 Disaster system
+- 🔴 Capital market (loans, credit)
+- 🔴 Dynamic ports with LOD
+- 🔴 Route visualization on map
+- 🔴 AI companion UI and logic
+- 🔴 Specialist hiring and effects
+
+**Critical Path Forward:**
+1. **MUST DO FIRST**: Connect all UI components to live Zustand stores (Phase 2.0)
+2. **THEN**: Implement dynamic ports system (Phase 2.5)
+3. **FINALLY**: Add advanced features like disasters, AI, multiplayer

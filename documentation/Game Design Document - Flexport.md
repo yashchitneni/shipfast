@@ -1,7 +1,17 @@
 # **Flexport: The Game Design Document**
 
-Version: 3.0 (Consolidated Master Document)
-Date: July 15, 2025
+Version: 4.0 (Updated Implementation Status)
+Date: July 16, 2025
+Status: Phase 2.0 - Integration Work Required
+
+### **Implementation Status Summary**
+
+**⚠️ CRITICAL NOTICE:** The game is currently at a technical junction requiring immediate integration work. Multiple UI components were built as isolated prototypes with mock data and must be connected to live Zustand stores before ANY new features can be added.
+
+**Current Status:**
+- ✅ **Foundation Complete**: Core architecture, database, and basic systems implemented
+- 🔴 **Integration Required**: UI components using mock data instead of live stores
+- ⏸️ **Features Blocked**: No new features until Phase 2.0 integration complete
 
 ### **Section 1: Game Overview and Core Premise**
 
@@ -21,9 +31,16 @@ The player's journey follows a classic tycoon progression, focused on a satisfyi
 
 The gameplay is built upon three interconnected pillars, mirroring the structure of classic tycoon games.
 
-#### **Pillar 1: Asset & Capital Management (The "Tycoon" Engine)**
+#### **Pillar 1: Asset & Capital Management (The "Tycoon" Engine)** [PARTIALLY IMPLEMENTED]
 
 This pillar is about building the physical and financial foundation of your empire. It is the core resource management loop.
+
+**Implementation Status:**
+- ✅ Asset placement and persistence working in Phaser
+- ✅ Database schema complete with all asset types
+- 🔴 MarketTradingPanel using MOCK_MARKET_ITEMS instead of live data
+- 🔴 FinancialDashboard using mock revenue/expense data
+- 🔴 Asset UI not connected to empireStore
 
 *   **Asset Acquisition & Management:** This is the primary gameplay verb. Players purchase, manage, and upgrade their income-generating assets.
     *   **Player Actions:**
@@ -56,9 +73,16 @@ This pillar is about building the physical and financial foundation of your empi
     *   **Player Actions:**
         *   **Hire Specialists:** Recruit staff from the **Labor Market** who provide passive, empire-wide bonuses (e.g., an "Ops Specialist" reduces disaster impact, a "Market Analyst" provides better demand predictions).
 
-#### **Pillar 2: Dynamic Logistics & Route Optimization (The "Design" Puzzle)**
+#### **Pillar 2: Dynamic Logistics & Route Optimization (The "Design" Puzzle)** [NOT INTEGRATED]
 
 This pillar is the strategic heart of the game, equivalent to designing a roller coaster in RCT. The player's goal is to create the most efficient and profitable network possible.
+
+**Implementation Status:**
+- ✅ Route database schema complete
+- ✅ useRouteStore exists with basic functionality
+- 🔴 RouteManager using MOCK_ROUTES instead of live data
+- 🔴 Route visualization not implemented in Phaser
+- 🔴 Route assignment to assets not working
 
 *   **Route Creation & Construction:** This is a core creative and strategic action.
     *   **Player Actions:**
@@ -88,9 +112,16 @@ This pillar is the strategic heart of the game, equivalent to designing a roller
         *   **Satisfaction**: Improves with levels; risk of espionage if mismanaged.
         *   **AI Progression**: Novice to Master levels.
 
-#### **Pillar 3: Navigating the Live Global Economy (The "Guest Satisfaction" Loop)**
+#### **Pillar 3: Navigating the Live Global Economy (The "Guest Satisfaction" Loop)** [SCHEMA ONLY]
 
 In our game, the "guests" are the global market. Keeping the market "happy" means successfully identifying and servicing its needs faster and more efficiently than your competitors.
+
+**Implementation Status:**
+- ✅ Market system database schema complete (migration 005)
+- ✅ useMarketStore and useEconomyStore exist
+- 🔴 Market UI using mock data
+- 🔴 No live market updates or pricing engine running
+- 🔴 Disaster system not implemented
 
 *   **Market Dynamics:** The game world is driven by supply and demand, simulated from real-world data.
     *   **How the Player Sees It:**
@@ -105,9 +136,17 @@ In our game, the "guests" are the global market. Keeping the market "happy" mean
 *   **Multiplayer Competition:** The player exists in a shared world.
     *   **Player Experience:** Another player's actions have a direct impact. If a rival buys up the entire available supply of new ships, the player will have to wait for the "manufacturers" to replenish the stock or pay a premium on the second-hand market. The real-time auctions are direct, head-to-head competitive events.
 
-### **Section 2.5: The Interactive World Map**
+### **Section 2.5: The Interactive World Map** [BASIC VERSION IMPLEMENTED]
 
 The game world is presented to the player as a **stylized, isometric 2D map**. This is not a geographically exact replica of Earth, but a visually engaging representation featuring recognizable continents, major oceans, and key economic regions. The map is the player's primary canvas for building and managing their empire.
+
+**Implementation Status:**
+- ✅ Isometric world map with camera controls working
+- ✅ Asset placement and persistence functional
+- ✅ Basic minimap component built
+- 🔴 No dynamic ports - only static port data
+- 🔴 No Level of Detail (LOD) system
+- 🔴 Trade routes not visualized on map
 
 *   **Appearance and Feel:** The visual style is clean and data-driven, blending the charm of classic tycoon games with a modern, professional aesthetic. The map is vibrant, with animated ocean textures, weather effects, and a full day/night cycle that impacts gameplay.
 
@@ -159,20 +198,37 @@ The game world is presented to the player as a **stylized, isometric 2D map**. T
 *   **Night Operations**: Reduced visibility and higher risks for routes.
 *   **Seasonal Changes**: Affects demand for certain goods and triggers weather events.
 
-### **Section 4: Design Decisions & Technical Foundation**
+### **Section 4: Design Decisions & Technical Foundation** [IMPLEMENTED WITH ISSUES]
 
 *   **Engine & Framework:** We will use **Phaser.js** for the game canvas and **React/Next.js** for the UI. This web-based approach allows for rapid prototyping, easy deployment, and accessibility on any modern computer without installs.
+    - ✅ **Status**: Phaser + Next.js hybrid architecture working
 *   **Backend:** **Supabase** will handle our database, real-time sync, and server-side logic (Edge Functions). This provides a scalable and secure backend without the need for server management.
+    - ✅ **Status**: Supabase configured with 7 migrations, RLS enabled
 *   **State Management:** **Zustand** will be used to manage the state between the React UI and the Phaser canvas, ensuring data consistency with a lightweight and simple API.
+    - ⚠️ **Status**: Multiple stores exist but lack clear hierarchy - needs consolidation
 *   **Data Integration:** The game will be **seeded with offline data** from the Harvard Atlas for the prototype. Live API calls will be handled by a scheduled Supabase Edge Function to ensure performance and reliability, feeding the live economy for the full version.
+    - 🔴 **Status**: No data seeding implemented, no Edge Functions deployed
 
 ### **Section 5: The Roadmap Ahead**
 
-With this definitive design document established, our path forward is clear. The other documents in this folder serve as detailed implementation plans based on this vision:
+**⚠️ CRITICAL PATH:** The game requires immediate integration work before ANY new features can be added. See the Flexport Implementation Roadmap.md for the complete phased approach.
 
-1.  **UI/UX Flow Document & Wireframes:** Designs the exact layout and click-flow of the game's dashboards and menus.
-2.  **Core Systems Design Document (CSDD):** Defines the precise mathematical formulas, data structures, and logic for every system detailed in this GDD.
-3.  **Entity-Relationship Diagram (ERD):** Provides the blueprint for the database schema.
-4.  **System & Technical Architecture Documents:** Detail the software architecture and technical implementation strategy.
+**Immediate Priority (Phase 2.0 - 2-3 weeks):**
+1. **State Consolidation**: Unify all Zustand stores under empireStore
+2. **Connect MarketTradingPanel**: Remove mock data, wire to live stores
+3. **Connect FinancialDashboard**: Calculate metrics from actual game state
+4. **Connect RouteManager**: Display and manage real routes from store
+5. **Deprecate Legacy Structure**: Remove old asset organization
 
-This structured approach will allow us to build a deep, engaging, and impressive simulation game.
+**Next Priority (Phase 2.5 - 2-3 weeks):**
+1. **Dynamic Ports System**: Implement 20 major global ports with LOD
+2. **Port Infrastructure**: Add docks, cranes, warehouses
+3. **Economic Integration**: Port-specific pricing and trade opportunities
+
+**Supporting Documents Status:**
+1. **UI/UX Flow Document & Wireframes:** ✅ Basic flows implemented
+2. **Core Systems Design Document (CSDD):** ⚠️ Needs update for implemented vs placeholder systems
+3. **Entity-Relationship Diagram (ERD):** ✅ Updated to v3.0 with complete schema
+4. **System & Technical Architecture Documents:** ✅ Architecture established
+
+**Development Principle:** No new features until Phase 2.0 integration is complete. The mock data disconnect must be resolved first.
