@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useTimeStore } from '@/stores/timeStore';
-import { useEconomyStore } from '@/store/useEconomyStore';
+import { useTimeStore } from '@/app/stores/timeStore';
+import { useEconomyStore } from '@/app/store/useEconomyStore';
 
 export const useTimeSync = () => {
   const { activeEvents, updateTime, isPaused } = useTimeStore();

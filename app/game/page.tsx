@@ -2,26 +2,15 @@
 
 import dynamic from 'next/dynamic';
 import GameUI from '../../components/GameUI';
-import { AssetManager } from '../components/assets/AssetManager';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useEmpireStore } from '../../src/store/empireStore';
 import { loadAllAssetDefinitions, getMockPortNodes } from '../lib/assetLoader';
 import { realtimeAssetSync } from '../../lib/supabase/realtime-assets';
-import { systemIntegration } from '../lib/game/system-integration';
-import { useRouteStore } from '../store/useRouteStore';
-import { useEconomyStore } from '../store/useEconomyStore';
-import { useMarketStore } from '../store/useMarketStore';
-import { useAIStore } from '../store/useAIStore';
 
 // Type declaration for development testing
 declare global {
   interface Window {
     useEmpireStore?: typeof useEmpireStore;
-    useRouteStore?: typeof useRouteStore;
-    useEconomyStore?: typeof useEconomyStore;
-    useMarketStore?: typeof useMarketStore;
-    useAIStore?: typeof useAIStore;
-    systemIntegration?: typeof systemIntegration;
   }
 }
 
@@ -36,26 +25,30 @@ const GameCanvas = dynamic(() => import('../../components/GameCanvas'), {
 });
 
 export default function GamePage() {
-  const [showAssetManager, setShowAssetManager] = useState(false);
-  const { loadAssetDefinitions, setPortNodes, setPlayerId, loadPlayerAssets } = useEmpireStore();
+  const { loadAssetDefinitions, setPortNodes, loadPlayerAssets } = useEmpireStore();
 
   useEffect(() => {
+    // Debug environment variables
+    console.log('🔧 Environment check:');
+    console.log('- SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? '✅ Set' : '❌ Missing');
+    console.log('- SUPABASE_ANON_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing');
+    console.log('- SERVICE_ROLE_KEY:', process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY ? '✅ Set' : '❌ Missing');
+    console.log('- NODE_ENV:', process.env.NODE_ENV);
+    
     // Initialize player data
     const store = useEmpireStore.getState();
     
     // Expose stores and integration to window for testing in development
     if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
       window.useEmpireStore = useEmpireStore;
-      window.useRouteStore = useRouteStore;
-      window.useEconomyStore = useEconomyStore;
-      window.useMarketStore = useMarketStore;
-      window.useAIStore = useAIStore;
-      window.systemIntegration = systemIntegration;
     }
+    
+    // Use consistent player ID throughout
+    const playerId = '00000000-0000-0000-0000-000000000001';
     
     if (!store.player) {
       store.setPlayer({
-        id: 'player-1',
+        id: playerId,
         username: 'Captain',
         email: 'captain@example.com',
         cash: 50000,
@@ -77,39 +70,40 @@ export default function GamePage() {
 
     // Initialize asset system
     const initAssets = async () => {
-      // Load asset definitions
-      const definitions = await loadAllAssetDefinitions();
-      loadAssetDefinitions(definitions);
-      
-      // Set port nodes
-      setPortNodes(getMockPortNodes());
-      
-      // Set player ID (in production, this would come from auth)
-      // For now, we'll use a mock UUID that doesn't require auth
-      const playerId = '00000000-0000-0000-0000-000000000001';
-      setPlayerId(playerId);
-      
-      // Ensure player exists in database
-      const { assetService } = await import('../../lib/supabase/assets');
-      await assetService.ensurePlayerExists(playerId, 'Test Captain', 50000);
-      
-      // Load existing assets from database
-      await loadPlayerAssets();
-      
-      // Initialize real-time sync
-      await realtimeAssetSync.initialize('player-1');
-      
-      // Initialize Phase 2 systems
       try {
-        await systemIntegration.initialize(playerId);
-        console.log('Phase 2 systems integrated:', systemIntegration.getStatus());
+        console.log('🚀 Starting asset system initialization...');
         
-        // Load player routes
-        const routeStore = useRouteStore.getState();
-        await routeStore.loadPlayerRoutes(playerId);
-        console.log('Routes loaded');
+        // Load asset definitions
+        const definitions = await loadAllAssetDefinitions();
+        loadAssetDefinitions(definitions);
+        console.log('✅ Asset definitions loaded:', definitions.length);
+        
+        // Set port nodes
+        setPortNodes(getMockPortNodes());
+        console.log('✅ Port nodes set');
+        
+        // Ensure player exists in database
+        const { assetService } = await import('../../lib/supabase/assets');
+        const result = await assetService.ensurePlayerExists(playerId, 'Test Captain', 50000);
+        
+        if (result.success) {
+          console.log('✅ Player initialized successfully');
+          
+          // Load existing assets from database
+          await loadPlayerAssets();
+          console.log('✅ Player assets loaded');
+          
+          // Initialize real-time sync with consistent player ID
+          await realtimeAssetSync.initialize(playerId);
+          console.log('✅ Realtime sync initialized');
+          
+          console.log('🎉 Asset system initialization complete!');
+        } else {
+          console.error('❌ Failed to initialize player:', result.error);
+        }
+        
       } catch (error) {
-        console.error('Failed to initialize Phase 2 systems:', error);
+        console.error('❌ Failed to initialize asset system:', error);
       }
     };
     
@@ -118,26 +112,16 @@ export default function GamePage() {
     // Cleanup on unmount
     return () => {
       realtimeAssetSync.cleanup();
-      systemIntegration.cleanup();
     };
-  }, [loadAssetDefinitions, setPortNodes, setPlayerId, loadPlayerAssets]);
+  }, [loadAssetDefinitions, setPortNodes, loadPlayerAssets]);
 
   return (
-    <div className="relative w-full h-screen overflow-hidden">
+    <div className="h-screen w-full bg-ocean-blue relative overflow-hidden">
+      {/* Game Canvas */}
       <GameCanvas />
+      
+      {/* Game UI Overlay */}
       <GameUI />
-      
-      {/* Asset Manager Toggle Button */}
-      <button
-        onClick={() => setShowAssetManager(!showAssetManager)}
-        className="fixed bottom-4 right-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2"
-      >
-        <span className="text-xl">🏗️</span>
-        <span>{showAssetManager ? 'Hide' : 'Show'} Assets</span>
-      </button>
-      
-      {/* Asset Manager */}
-      {showAssetManager && <AssetManager />}
     </div>
   );
 }

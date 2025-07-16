@@ -9,6 +9,7 @@ const MarketTradingPanel = dynamic(() => import('../app/components/market/Market
 const RouteManager = dynamic(() => import('./RouteManager'), { ssr: false });
 const FinancialDashboard = dynamic(() => import('../app/components/finance/FinancialDashboard'), { ssr: false });
 const AICompanionPanel = dynamic(() => import('../app/components/ai/AICompanionPanel'), { ssr: false });
+const AssetManager = dynamic(() => import('../app/components/assets/AssetManager').then(mod => ({ default: mod.AssetManager })), { ssr: false });
 
 export default function GameUI() {
   const player = usePlayer();
@@ -89,6 +90,12 @@ export default function GameUI() {
             active={activePanel === 'ai'}
             onClick={() => setActivePanel(activePanel === 'ai' ? null : 'ai')}
           />
+          <PanelButton
+            label="Assets"
+            icon="🏗️"
+            active={activePanel === 'assets'}
+            onClick={() => setActivePanel(activePanel === 'assets' ? null : 'assets')}
+          />
         </div>
       </div>
 
@@ -139,6 +146,8 @@ function renderPanel(panel: string) {
       return <PortsPanel />;
     case 'ai':
       return <AICompanionPanel />;
+    case 'assets':
+      return <AssetManager />;
     default:
       return null;
   }

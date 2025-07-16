@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { useTimeStore, TimeSpeed } from '@/stores/timeStore';
+import { useTimeStore, TimeSpeed } from '@/app/stores/timeStore';
 import { Clock, Calendar, Pause, Play, FastForward, Zap } from 'lucide-react';
 
 const TimeDisplay: React.FC = () => {

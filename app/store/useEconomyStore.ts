@@ -15,7 +15,7 @@ import type {
   CompoundingGrowth,
   MonthlyFinancial,
   PricePoint
-} from '@/lib/types/economy';
+} from '@/app/lib/types/economy';
 
 interface EconomyState {
   // Market state

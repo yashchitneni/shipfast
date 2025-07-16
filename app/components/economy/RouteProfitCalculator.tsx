@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useEconomyStore } from '@/store';
-import type { RouteCalculation, MarketCondition } from '@/lib/types/economy';
+import { useEconomyStore } from '@/app/store/useEconomyStore';
+import type { RouteCalculation, MarketCondition } from '@/app/lib/types/economy';
 
 export function RouteProfitCalculator() {
   const { calculateRouteProfit, marketState } = useEconomyStore();

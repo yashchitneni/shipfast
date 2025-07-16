@@ -2,11 +2,44 @@ import * as Phaser from 'phaser';
 import { SceneKeys, AssetKeys, GameEvents } from '../types/game';
 import { useEmpireStore } from '../src/store/empireStore';
 import { assetBridge } from '../utils/assetBridge';
-import { routeBridge } from '../utils/routeBridge';
-import { portBridge } from '../utils/portBridge';
 import { IsometricTileMap } from '../utils/IsometricTileMap';
 import { CameraController } from '../utils/CameraController';
-import { useRouteStore } from '../app/store/useRouteStore';
+
+// Create a simple route render system interface for now
+interface RouteRenderSystem {
+  update(time: number, delta: number): void;
+}
+
+// Simple route bridge implementation
+const routeBridge = {
+  setScene: (scene: Phaser.Scene) => {
+    console.log('Route bridge set scene:', scene.scene.key);
+  },
+  getRouteRenderSystem: (): RouteRenderSystem => ({
+    update: (time: number, delta: number) => {
+      // Simple route rendering update
+    }
+  }),
+  startRouteCreation: (portId: string) => {
+    console.log('Starting route creation from port:', portId);
+  },
+  updateRoutePreview: (portId: string) => {
+    console.log('Updating route preview to port:', portId);
+  },
+  destroy: () => {
+    console.log('Route bridge destroyed');
+  }
+};
+
+// Simple port bridge implementation
+const portBridge = {
+  setScene: (scene: Phaser.Scene) => {
+    console.log('Port bridge set scene:', scene.scene.key);
+  },
+  destroy: () => {
+    console.log('Port bridge destroyed');
+  }
+};
 
 // Visual Style Guide colors
 const COLORS = {
@@ -58,6 +91,11 @@ export default class WorldMapScene extends Phaser.Scene {
   private routeGraphics!: Phaser.GameObjects.Graphics;
   private tooltip: Phaser.GameObjects.Text | null = null;
   
+  // Asset placement
+  private ghostSprite: Phaser.GameObjects.Image | null = null;
+  private unsubscribeAssetToPlace: (() => void) | null = null;
+  private validPlacementIndicator!: Phaser.GameObjects.Graphics;
+  
   constructor() {
     super({ key: SceneKeys.WORLD_MAP });
   }
@@ -81,6 +119,10 @@ export default class WorldMapScene extends Phaser.Scene {
     
     // Create route graphics layer
     this.routeGraphics = this.add.graphics();
+    
+    // Create valid placement indicator graphics
+    this.validPlacementIndicator = this.add.graphics();
+    this.validPlacementIndicator.setDepth(999);
     
     // Initialize asset bridge with this scene
     assetBridge.setScene(this);
@@ -122,10 +164,10 @@ export default class WorldMapScene extends Phaser.Scene {
     // Set bounds (will be adjusted based on map size)
     const mapBounds = this.isometricMap.getMapBounds();
     camera.setBounds(
-      mapBounds.x - 500,
-      mapBounds.y - 500,
-      mapBounds.width + 1000,
-      mapBounds.height + 1000
+      mapBounds.x - 200,
+      mapBounds.y - 200,
+      mapBounds.width + 200,
+      mapBounds.height + 200
     );
   }
 
@@ -352,17 +394,10 @@ export default class WorldMapScene extends Phaser.Scene {
     this.input.on('gameobjectdown', (pointer: Phaser.Input.Pointer, gameObject: any) => {
       if (gameObject.getData('type') === 'port') {
         const portId = gameObject.getData('id');
-        const routeStore = useRouteStore.getState();
+        console.log('Port clicked:', portId);
         
-        if (routeStore.routeCreationMode) {
-          if (!routeStore.routePreview) {
-            // Start route creation
-            routeBridge.startRouteCreation(portId);
-          } else {
-            // Complete route creation
-            routeBridge.updateRoutePreview(portId);
-          }
-        }
+        // Simple port interaction - can be expanded later
+        routeBridge.startRouteCreation(portId);
       }
     });
   }

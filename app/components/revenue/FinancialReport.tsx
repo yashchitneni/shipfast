@@ -7,7 +7,7 @@ import {
   CardTitle,
   CardContent,
   CardDescription
-} from '@/components/ui/card';
+} from '@/app/components/ui/card';
 import {
   Tabs,
   TabsContent,

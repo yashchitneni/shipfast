@@ -1,4 +1,4 @@
-import { EconomyDashboard, RouteProfitCalculator } from '@/components/economy';
+import { EconomyDashboard, RouteProfitCalculator } from '@/app/components/economy';
 
 export default function EconomyDemoPage() {
   return (

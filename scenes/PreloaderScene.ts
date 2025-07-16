@@ -45,7 +45,12 @@ export default class PreloaderScene extends Phaser.Scene {
     this.load.on('complete', () => {
       this.progressBar.destroy();
       this.loadingBar.destroy();
-      this.loadingText.setText('Click to Start!');
+      this.loadingText.setText('Starting game...');
+      
+      // Automatically transition to world map after brief delay
+      this.time.delayedCall(500, () => {
+        this.scene.start(SceneKeys.WORLD_MAP);
+      });
     });
   }
 
@@ -113,8 +118,6 @@ export default class PreloaderScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.input.once('pointerdown', () => {
-      this.scene.start(SceneKeys.WORLD_MAP);
-    });
+    // No longer requires click to start - handled automatically in load complete event
   }
 }

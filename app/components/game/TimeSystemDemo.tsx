@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import GameHUD from './GameHUD';
-import { useTimeSync } from '@/hooks/useTimeSync';
-import { useTimeStore } from '@/stores/timeStore';
-import { useEconomyStore } from '@/store/useEconomyStore';
+import { useTimeSync } from '@/app/hooks/useTimeSync';
+import { useTimeStore } from '@/app/stores/timeStore';
+import { useEconomyStore } from '@/app/store/useEconomyStore';
 import { Activity, Package, Clock, TrendingUp } from 'lucide-react';
 
 const TimeSystemDemo: React.FC = () => {

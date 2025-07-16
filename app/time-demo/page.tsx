@@ -1,4 +1,4 @@
-import TimeSystemDemo from '@/components/game/TimeSystemDemo';
+import TimeSystemDemo from '@/app/components/game/TimeSystemDemo';
 
 export default function TimeDemoPage() {
   return <TimeSystemDemo />;

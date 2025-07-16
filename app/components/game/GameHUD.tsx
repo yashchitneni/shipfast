@@ -3,7 +3,7 @@
 import React from 'react';
 import TimeDisplay from './TimeDisplay';
 import EventCalendar from './EventCalendar';
-import { useEconomyStore } from '@/store/useEconomyStore';
+import { useEconomyStore } from '@/app/store/useEconomyStore';
 import { DollarSign, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 
 interface GameHUDProps {

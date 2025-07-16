@@ -55,6 +55,7 @@ export interface EmpireState {
   assetDefinitions: Map<string, AssetDefinition>;
   placedAssets: Map<string, PlacedAsset>;
   assetPreview: AssetPreview | null;
+  assetToPlace: string | null;
   portNodes: Map<string, PortNode>;
   playerLicenses: string[];
   
@@ -125,6 +126,7 @@ export interface EmpireActions {
   loadAssetDefinitions: (definitions: AssetDefinition[]) => void;
   setPortNodes: (ports: PortNode[]) => void;
   loadPlayerAssets: () => Promise<void>;
+  setAssetToPlace: (definitionId: string | null) => void;
   startAssetPreview: (definitionId: string, position: Position) => void;
   updateAssetPreview: (position: Position, rotation?: number) => void;
   cancelAssetPreview: () => void;
@@ -224,6 +226,7 @@ const initialState: EmpireState = {
   assetDefinitions: new Map(),
   placedAssets: new Map(),
   assetPreview: null,
+  assetToPlace: null,
   portNodes: new Map(),
   playerLicenses: [],
   // Game state
@@ -432,6 +435,10 @@ export const useEmpireStore = create<EmpireState & EmpireActions>()(
             const portMap = new Map<string, PortNode>();
             ports.forEach(port => portMap.set(port.id, port));
             state.portNodes = portMap;
+          }),
+          
+          setAssetToPlace: (definitionId) => set((state) => {
+            state.assetToPlace = definitionId;
           }),
           
           loadPlayerAssets: async () => {

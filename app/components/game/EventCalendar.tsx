@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useTimeStore, SEASONAL_EVENTS, Season } from '@/stores/timeStore';
+import { useTimeStore, SEASONAL_EVENTS, Season } from '@/app/stores/timeStore';
 import { Calendar, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
 
 const EventCalendar: React.FC = () => {

@@ -11,10 +11,8 @@ export const AssetPlacementUI: React.FC = () => {
     loadAssetDefinitions,
     setPortNodes,
     player,
-    startAssetPreview,
-    cancelAssetPreview,
-    placeAsset,
-    assetPreview,
+    setAssetToPlace,
+    assetToPlace,
     getAssetStats,
     placedAssets,
     updatePlayerCash
@@ -38,22 +36,17 @@ export const AssetPlacementUI: React.FC = () => {
 
   // Handle asset selection
   const handleSelectAsset = (definitionId: string) => {
-    // Start preview at center of screen (will follow mouse after)
-    startAssetPreview(definitionId, { x: window.innerWidth / 2, y: window.innerHeight / 2 });
-  };
-
-  // Handle placement
-  const handlePlaceAsset = async () => {
-    const result = await placeAsset();
-    
-    if (result.success) {
-      setPlacementMessage({ text: 'Asset placed successfully!', type: 'success' });
-    } else {
-      setPlacementMessage({ text: result.error || 'Failed to place asset', type: 'error' });
-    }
+    // Set the asset to place, which will be handled by the WorldMapScene
+    setAssetToPlace(definitionId);
+    setPlacementMessage({ text: 'Click on a port to place the asset', type: 'success' });
     
     // Clear message after 3 seconds
     setTimeout(() => setPlacementMessage(null), 3000);
+  };
+
+  // Handle cancel placement
+  const handleCancelPlacement = () => {
+    setAssetToPlace(null);
   };
 
   // Filter assets
@@ -142,24 +135,14 @@ export const AssetPlacementUI: React.FC = () => {
       </div>
 
       {/* Placement Controls */}
-      {assetPreview && (
+      {assetToPlace && (
         <div className="mt-4 p-3 bg-blue-100 rounded">
           <div className="flex justify-between items-center">
-            <span className="text-sm">Placing: {assetDefinitions.get(assetPreview.definitionId)?.name}</span>
+            <span className="text-sm">Placing: {assetDefinitions.get(assetToPlace)?.name}</span>
             <div className="space-x-2">
+              <span className="text-sm">Move to map and click on a port</span>
               <button
-                onClick={handlePlaceAsset}
-                disabled={!assetPreview.isValid}
-                className={`px-4 py-2 rounded text-white ${
-                  assetPreview.isValid 
-                    ? 'bg-green-500 hover:bg-green-600' 
-                    : 'bg-gray-400 cursor-not-allowed'
-                }`}
-              >
-                Place Asset
-              </button>
-              <button
-                onClick={cancelAssetPreview}
+                onClick={handleCancelPlacement}
                 className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
               >
                 Cancel
@@ -189,7 +172,7 @@ export const AssetPlacementUI: React.FC = () => {
                   player: player,
                   assetsCount: Array.from(placedAssets.values()).length,
                   definitionsCount: assetDefinitions.size,
-                  hasPreview: !!assetPreview
+                  assetToPlace: assetToPlace
                 });
               }}
               className="w-full px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"

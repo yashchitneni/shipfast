@@ -72,7 +72,7 @@ export const MarketTradingPanel: React.FC = () => {
     
     // Update player cash
     const cashChange = type === 'buy' ? -total : total;
-    updatePlayerCash(player.cash + cashChange);
+    updatePlayerCash(cashChange);
     
     // Reset trade amount
     setTradeAmount(1);

@@ -51,21 +51,23 @@ export const AssetManager: React.FC = () => {
   }, [handleMouseMove, handleClick, handleKeyDown]);
 
   return (
-    <div className="asset-manager">
-      {/* Asset placement UI sidebar */}
-      <div className="fixed right-0 top-0 h-full w-96 bg-white shadow-lg overflow-y-auto">
+    <div className="asset-manager h-full flex flex-col">
+      {/* Asset placement UI - fits within the GameUI panel */}
+      <div className="flex-1 overflow-y-auto">
         <AssetPlacementUI />
       </div>
 
-      {/* Asset preview follows mouse */}
-      <AssetPreview 
-        mousePosition={mousePosition} 
-        isVisible={!!assetPreview} 
-      />
-
-      {/* Instructions */}
+      {/* Asset preview follows mouse - positioned fixed to viewport */}
       {assetPreview && (
-        <div className="fixed bottom-4 left-4 bg-black bg-opacity-75 text-white p-4 rounded">
+        <AssetPreview 
+          mousePosition={mousePosition} 
+          isVisible={!!assetPreview} 
+        />
+      )}
+
+      {/* Instructions - positioned relative to the panel, not viewport */}
+      {assetPreview && (
+        <div className="bg-black bg-opacity-75 text-white p-4 rounded mt-4">
           <p className="text-sm mb-1">Click to place asset</p>
           <p className="text-sm mb-1">Press R to rotate</p>
           <p className="text-sm">Press ESC to cancel</p>

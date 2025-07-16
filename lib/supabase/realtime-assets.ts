@@ -7,104 +7,102 @@ export class RealtimeAssetSync {
   private supabase = createClient();
   private channel: RealtimeChannel | null = null;
   private playerId: string | null = null;
+  private isEnabled = process.env.NODE_ENV === 'production'; // Disable in development
 
   // Initialize real-time sync for a player
   async initialize(playerId: string) {
     this.playerId = playerId;
     
-    // Clean up existing channel if any
-    if (this.channel) {
-      await this.cleanup();
+    if (!this.isEnabled) {
+      console.log('🔄 Realtime sync disabled in development mode');
+      return;
     }
+    
+    try {
+      console.log('🔄 Initializing realtime sync for player:', playerId);
+      
+      // Clean up existing channel if any
+      if (this.channel) {
+        await this.cleanup();
+      }
 
-    // Create a channel for asset updates
-    this.channel = this.supabase.channel('assets-sync', {
-      config: {
-        broadcast: {
-          self: false, // Don't receive own broadcasts
+      // Create a channel for asset updates
+      this.channel = this.supabase.channel('assets-sync', {
+        config: {
+          broadcast: {
+            self: false, // Don't receive own broadcasts
+          },
         },
-      },
-    });
+      });
 
-    // Subscribe to database changes for assets
-    this.channel
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'asset',
-        },
-        (payload) => {
-          this.handleAssetChange(payload);
-        }
-      )
-      .on('broadcast', { event: 'asset-update' }, (payload) => {
-        this.handleBroadcast(payload);
-      })
-      .subscribe();
+      // Subscribe to database changes for assets
+      this.channel
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'asset',
+          },
+          (payload) => {
+            this.handleAssetChange(payload);
+          }
+        )
+        .on('broadcast', { event: 'asset-update' }, (payload) => {
+          this.handleBroadcast(payload);
+        })
+        .subscribe((status) => {
+          console.log('📡 Realtime subscription status:', status);
+        });
+        
+      console.log('✅ Realtime sync initialized successfully');
+    } catch (error) {
+      console.error('❌ Failed to initialize realtime sync:', error);
+    }
   }
 
   // Handle database changes
   private async handleAssetChange(payload: any) {
-    const store = useEmpireStore.getState();
+    if (!this.isEnabled) return;
     
-    switch (payload.eventType) {
-      case 'INSERT':
-        // Another player created an asset
-        if (payload.new.owner_id !== this.playerId) {
-          // In multiplayer, you might want to show other players' assets
-          console.log('Another player created an asset:', payload.new);
-        }
-        break;
-        
-      case 'UPDATE':
-        // Asset was updated
-        if (payload.new.owner_id === this.playerId) {
-          // Update local state if it's our asset
-          const stats = payload.new.stats as any;
-          const updatedAsset: Partial<PlacedAsset> = {
-            customName: payload.new.custom_name,
-            routeId: payload.new.assigned_route_id,
-            status: stats.status,
-            health: stats.health,
-            position: stats.position,
-            rotation: stats.rotation,
-          };
+    try {
+      const store = useEmpireStore.getState();
+      console.log('📡 Asset change received:', payload.eventType, payload.new?.asset_id);
+      
+      // Handle different event types
+      switch (payload.eventType) {
+        case 'INSERT':
+          // Convert database asset to PlacedAsset format
+          const newAsset = this.convertDbAssetToPlacedAsset(payload.new);
+          if (newAsset) {
+            store.placedAssets.set(newAsset.id, newAsset);
+          }
+          break;
           
-          // Update the asset in local store without triggering another DB update
-          const currentAssets = new Map(store.placedAssets);
-          const existingAsset = currentAssets.get(payload.new.asset_id);
-          if (existingAsset) {
-            currentAssets.set(payload.new.asset_id, {
-              ...existingAsset,
-              ...updatedAsset,
-            });
-            // Force re-render without DB call
-            if (store.player?.id) {
-              store.setPlayerId(store.player.id);
-            }
+        case 'UPDATE':
+          // Update existing asset
+          const updatedAsset = this.convertDbAssetToPlacedAsset(payload.new);
+          if (updatedAsset) {
+            store.placedAssets.set(updatedAsset.id, updatedAsset);
           }
-        }
-        break;
-        
-      case 'DELETE':
-        // Asset was deleted
-        if (payload.old.owner_id === this.playerId) {
-          // Remove from local state
-          const currentAssets = new Map(store.placedAssets);
-          currentAssets.delete(payload.old.asset_id);
-          // Force re-render without DB call
-          if (store.player?.id) {
-            store.setPlayerId(store.player.id);
+          break;
+          
+        case 'DELETE':
+          // Remove asset
+          if (payload.old?.asset_id) {
+            store.placedAssets.delete(payload.old.asset_id);
           }
-        }
-        break;
+          break;
+      }
+    } catch (error) {
+      console.error('❌ Error handling asset change:', error);
     }
   }
 
   // Handle broadcast messages (for instant updates)
   private handleBroadcast(payload: any) {
+    if (!this.isEnabled) return;
+
     const { type, data } = payload.payload;
     
     switch (type) {
@@ -127,6 +125,7 @@ export class RealtimeAssetSync {
 
   // Broadcast asset movement
   async broadcastAssetMove(assetId: string, position: { x: number; y: number }) {
+    if (!this.isEnabled) return;
     if (!this.channel) return;
     
     await this.channel.send({
@@ -141,6 +140,7 @@ export class RealtimeAssetSync {
 
   // Broadcast route assignment
   async broadcastRouteAssignment(assetId: string, routeId: string) {
+    if (!this.isEnabled) return;
     if (!this.channel) return;
     
     await this.channel.send({
@@ -155,6 +155,7 @@ export class RealtimeAssetSync {
 
   // Update asset position locally
   private updateAssetPosition(assetId: string, position: { x: number; y: number }) {
+    if (!this.isEnabled) return;
     const store = useEmpireStore.getState();
     const asset = store.placedAssets.get(assetId);
     if (asset) {
@@ -167,6 +168,7 @@ export class RealtimeAssetSync {
 
   // Update asset route locally
   private updateAssetRoute(assetId: string, routeId: string) {
+    if (!this.isEnabled) return;
     const store = useEmpireStore.getState();
     const asset = store.placedAssets.get(assetId);
     if (asset) {
@@ -179,10 +181,35 @@ export class RealtimeAssetSync {
 
   // Clean up subscriptions
   async cleanup() {
+    if (!this.isEnabled) return;
     if (this.channel) {
       await this.supabase.removeChannel(this.channel);
       this.channel = null;
     }
+  }
+
+  // Helper to convert database asset to PlacedAsset format
+  private convertDbAssetToPlacedAsset(dbAsset: any): PlacedAsset | null {
+    if (!dbAsset || !dbAsset.asset_id) {
+      console.warn('Received invalid asset data for conversion:', dbAsset);
+      return null;
+    }
+
+         const asset: PlacedAsset = {
+       id: dbAsset.asset_id,
+       definitionId: dbAsset.stats?.definitionId || '',
+       ownerId: dbAsset.owner_id,
+       position: dbAsset.stats?.position || { x: 0, y: 0 },
+       rotation: dbAsset.stats?.rotation || 0,
+       portId: dbAsset.stats?.portId,
+       routeId: dbAsset.assigned_route_id,
+       status: dbAsset.stats?.status || 'active',
+       health: dbAsset.stats?.health || 100,
+       purchasedAt: dbAsset.stats?.purchasedAt || Date.now(),
+       customName: dbAsset.custom_name,
+     };
+
+    return asset;
   }
 }
 

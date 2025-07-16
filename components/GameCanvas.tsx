@@ -12,7 +12,7 @@ export default function GameCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   
   // Get store state and actions
-  const { isPaused, gameSpeed, setPlayer, placedAssets, loadPlayerAssets, setPlayerId } = useEmpireStore();
+  const { isPaused, gameSpeed, setPlayer, placedAssets, loadPlayerAssets } = useEmpireStore();
 
   useEffect(() => {
     if (!containerRef.current || gameRef.current) return;

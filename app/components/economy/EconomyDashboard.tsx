@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useEconomyStore } from '@/store';
-import type { RouteCalculation } from '@/lib/types/economy';
+import { useEconomyStore } from '@/app/store/useEconomyStore';
+import type { RouteCalculation } from '@/app/lib/types/economy';
 
 export function EconomyDashboard() {
   const {
