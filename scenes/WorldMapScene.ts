@@ -119,73 +119,76 @@ export default class WorldMapScene extends Phaser.Scene {
    * state of the game world, including the map, camera, input handlers, and bridges.
    */
   create(): void {
-    // Create isometric map with procedural generation
+    // Create isometric map with image-based generation
     this.isometricMap = new IsometricTileMap(this);
     this.isometricMap.create();
     
-    // Extract ports from the isometric map and store them
-    this.extractPortsFromMap();
-    
-    // Set up camera
-    this.setupCamera();
-    
-    // Create camera controller
-    this.cameraController = new CameraController(this.cameras.main);
-    
-    // Set up input handlers
-    this.setupInputHandlers();
-    
-    // Create lighting system
-    this.createLightingSystem();
-    
-    // Create route graphics layer
-    this.routeGraphics = this.add.graphics();
-    
-    // Create valid placement indicator graphics
-    this.validPlacementIndicator = this.add.graphics();
-    this.validPlacementIndicator.setDepth(999);
-    
-    // Initialize asset bridge with this scene
-    assetBridge.setScene(this);
-    
-    // Initialize route bridge with this scene
-    routeBridge.setScene(this);
-    
-    // Initialize port bridge with this scene
-    portBridge.setScene(this);
-    
-    // Initialize minimap bridge with this scene
-    minimapBridge.setScene(this);
-    
-    // Get route render system from bridge
-    this.routeRenderSystem = routeBridge.getRouteRenderSystem()!;
-    
-    // Create UI overlay
-    this.createUIOverlay();
-    
-    // Connect to Zustand store
-    this.connectToStore();
-    
-    // Load player assets from database
-    this.loadPlayerAssets();
-    
-    // Set up asset bridge event listeners
-    this.setupAssetBridgeEvents();
-    
-    // Set up route bridge event listeners
-    this.setupRouteBridgeEvents();
-    
-    // Set up asset placement subscription
-    this.setupAssetPlacement();
-    
-    // Set up minimap
-    this.setupMinimap();
-    
-    // Set up zoom controls
-    this.setupZoomControls();
-    
-    // Emit scene ready event
-    this.game.events.emit('sceneready', this);
+    // Wait for the map to initialize, then set up the rest
+    this.isometricMap.initialize().then(() => {
+      // Extract ports from the isometric map and store them
+      this.extractPortsFromMap();
+      
+      // Set up camera
+      this.setupCamera();
+      
+      // Create camera controller
+      this.cameraController = new CameraController(this.cameras.main);
+      
+      // Set up input handlers
+      this.setupInputHandlers();
+      
+      // Create lighting system
+      this.createLightingSystem();
+      
+      // Create route graphics layer
+      this.routeGraphics = this.add.graphics();
+      
+      // Create valid placement indicator graphics
+      this.validPlacementIndicator = this.add.graphics();
+      this.validPlacementIndicator.setDepth(999);
+      
+      // Initialize asset bridge with this scene
+      assetBridge.setScene(this);
+      
+      // Initialize route bridge with this scene
+      routeBridge.setScene(this);
+      
+      // Initialize port bridge with this scene
+      portBridge.setScene(this);
+      
+      // Initialize minimap bridge with this scene
+      minimapBridge.setScene(this);
+      
+      // Get route render system from bridge
+      this.routeRenderSystem = routeBridge.getRouteRenderSystem()!;
+      
+      // Create UI overlay
+      this.createUIOverlay();
+      
+      // Connect to Zustand store
+      this.connectToStore();
+      
+      // Load player assets from database
+      this.loadPlayerAssets();
+      
+      // Set up asset bridge event listeners
+      this.setupAssetBridgeEvents();
+      
+      // Set up route bridge event listeners
+      this.setupRouteBridgeEvents();
+      
+      // Set up asset placement subscription
+      this.setupAssetPlacement();
+      
+      // Set up minimap
+      this.setupMinimap();
+      
+      // Set up zoom controls
+      this.setupZoomControls();
+      
+      // Emit scene ready event
+      this.game.events.emit('sceneready', this);
+    });
   }
 
   /**
@@ -692,10 +695,12 @@ export default class WorldMapScene extends Phaser.Scene {
 
   private extractPortsFromMap(): void {
     const store = useEmpireStore.getState();
-    const tileData = this.isometricMap.getTileData();
-    const { width, height } = this.isometricMap.getMapDimensions();
     
-    const portNodes: Array<{
+    // Get port nodes from the isometric map
+    const portNodes = this.isometricMap.getPortNodes();
+    
+    // Convert to world coordinates and create port markers
+    const worldPortNodes: Array<{
       id: string;
       name: string;
       position: { x: number; y: number };
@@ -704,36 +709,29 @@ export default class WorldMapScene extends Phaser.Scene {
       connectedRoutes: string[];
     }> = [];
     
-    // Iterate through tile data to find ports
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const tile = tileData[y][x];
-        
-        if (tile.type === 'port') {
-          // Convert tile coordinates to world coordinates
-          const worldPos = this.isometricMap.tileToWorld(x, y);
-          
-          // Create a port node
-          const portNode = {
-            id: `port_${x}_${y}`,
-            name: `Port ${portNodes.length + 1}`,
-            position: { x: worldPos.x, y: worldPos.y },
-            region: 'default',
-            capacity: 100,
-            connectedRoutes: []
-          };
-          
-          portNodes.push(portNode);
-          
-          // Create a visual port marker with click handler
-          this.createPortMarker(portNode);
-        }
-      }
-    }
+    portNodes.forEach(portNode => {
+      // Convert tile coordinates to world coordinates
+      const worldPos = this.isometricMap.tileToWorld(portNode.position.x, portNode.position.y);
+      
+      // Create a port node with world coordinates
+      const worldPortNode = {
+        id: portNode.id,
+        name: portNode.name,
+        position: { x: worldPos.x, y: worldPos.y },
+        region: portNode.region,
+        capacity: 100,
+        connectedRoutes: portNode.connectedRoutes
+      };
+      
+      worldPortNodes.push(worldPortNode);
+      
+      // Create a visual port marker with click handler
+      this.createPortMarker(worldPortNode);
+    });
     
     // Register all found ports with the empire store
-    console.log(`Found ${portNodes.length} ports in the map`);
-    store.setPortNodes(portNodes);
+    console.log(`Found ${worldPortNodes.length} ports in the map`);
+    store.setPortNodes(worldPortNodes);
   }
   
   private createPortMarker(portNode: { id: string; name: string; position: { x: number; y: number }; region: string }): void {

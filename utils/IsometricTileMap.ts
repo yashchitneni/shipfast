@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { ImageMapProcessor } from './ImageMapProcessor';
 
 // Configuration constants
 const ISOMETRIC_CONFIG = {
@@ -25,18 +26,79 @@ export class IsometricTileMap {
   private mapHeight: number = 200;
   private tiles: Phaser.GameObjects.Container;
   private tileData: TileData[][] = [];
+  private imageProcessor: ImageMapProcessor;
+  private portNodes: Array<{
+    id: string;
+    name: string;
+    position: { x: number; y: number };
+    region: string;
+    connectedRoutes: string[];
+  }> = [];
   
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     this.tiles = scene.add.container(0, 0);
+    this.imageProcessor = new ImageMapProcessor(scene, 'world-map', this.mapWidth, this.mapHeight);
+  }
+
+  /**
+   * Initialize the map by loading and processing the world map image
+   */
+  async initialize(): Promise<void> {
+    // Load the world map image
+    this.imageProcessor.preload();
+    
+    // Wait for the image to load
+    await new Promise<void>((resolve) => {
+      this.scene.load.once('complete', () => {
+        resolve();
+      });
+      this.scene.load.start();
+    });
+    
+    // Process the image to generate tile data
+    const mapData = await this.imageProcessor.processImage();
+    
+    // Convert processed data to TileData format
+    this.tileData = mapData.tileData.map(row => 
+      row.map(tile => ({
+        type: tile.type,
+        elevation: tile.elevation,
+        accessible: tile.accessible
+      }))
+    );
+    
+    // Store ports for later use
+    this.portNodes = mapData.ports.map(port => ({
+      id: port.id,
+      name: port.name,
+      position: port.position,
+      region: port.region,
+      connectedRoutes: port.connectedRoutes
+    }));
+    
+    console.log(`Loaded world map with ${mapData.ports.length} ports`);
   }
 
   create(): void {
-    // Generate map data
-    this.generateMapData();
-    
-    // Create visual tiles
-    this.createTiles();
+    // Use image-based generation instead of procedural
+    this.initialize().then(() => {
+      // Create visual tiles after data is loaded
+      this.createTiles();
+    });
+  }
+
+  /**
+   * Get port nodes for use in WorldMapScene
+   */
+  getPortNodes(): Array<{
+    id: string;
+    name: string;
+    position: { x: number; y: number };
+    region: string;
+    connectedRoutes: string[];
+  }> {
+    return this.portNodes;
   }
 
   private generateMapData(): void {

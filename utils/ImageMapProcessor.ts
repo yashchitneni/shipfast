@@ -1,0 +1,285 @@
+import * as Phaser from 'phaser';
+
+interface TileData {
+  type: 'ocean' | 'land' | 'port';
+  elevation: number;
+  accessible: boolean;
+}
+
+interface ProcessedMapData {
+  tileData: TileData[][];
+  mapWidth: number;
+  mapHeight: number;
+  ports: Array<{
+    id: string;
+    name: string;
+    position: { x: number; y: number };
+    region: string;
+    capacity: number;
+    connectedRoutes: string[];
+  }>;
+}
+
+/**
+ * ImageMapProcessor - Converts pixel art world map to tile data
+ * 
+ * This class processes the High Detail Pixel Art World Map and converts it into
+ * tile data that can be used by the IsometricTileMap system.
+ */
+export class ImageMapProcessor {
+  private scene: Phaser.Scene;
+  private imageKey: string;
+  private targetWidth: number;
+  private targetHeight: number;
+
+  constructor(scene: Phaser.Scene, imageKey: string = 'world-map', targetWidth: number = 400, targetHeight: number = 200) {
+    this.scene = scene;
+    this.imageKey = imageKey;
+    this.targetWidth = targetWidth;
+    this.targetHeight = targetHeight;
+  }
+
+  /**
+   * Load the world map image
+   */
+  preload(): void {
+    this.scene.load.image(this.imageKey, '/world-map.png');
+  }
+
+  /**
+   * Process the loaded image and convert to tile data
+   */
+  async processImage(): Promise<ProcessedMapData> {
+    const image = this.scene.add.image(0, 0, this.imageKey);
+    const texture = image.texture;
+    const canvas = texture.getSourceImage() as HTMLCanvasElement;
+    
+    // Create a temporary canvas to process the image
+    const tempCanvas = document.createElement('canvas');
+    const tempCtx = tempCanvas.getContext('2d')!;
+    
+    // Set canvas size to match our target dimensions
+    tempCanvas.width = this.targetWidth;
+    tempCanvas.height = this.targetHeight;
+    
+    // Draw the image scaled to our target size
+    tempCtx.drawImage(canvas, 0, 0, this.targetWidth, this.targetHeight);
+    
+    // Get image data
+    const imageData = tempCtx.getImageData(0, 0, this.targetWidth, this.targetHeight);
+    const data = imageData.data;
+    
+    // Initialize tile data array
+    const tileData: TileData[][] = [];
+    for (let y = 0; y < this.targetHeight; y++) {
+      tileData[y] = [];
+      for (let x = 0; x < this.targetWidth; x++) {
+        tileData[y][x] = {
+          type: 'ocean',
+          elevation: 0,
+          accessible: true
+        };
+      }
+    }
+    
+    // Process each pixel
+    for (let y = 0; y < this.targetHeight; y++) {
+      for (let x = 0; x < this.targetWidth; x++) {
+        const index = (y * this.targetWidth + x) * 4;
+        const r = data[index];
+        const g = data[index + 1];
+        const b = data[index + 2];
+        const a = data[index + 3];
+        
+        // Determine tile type based on color
+        // The image appears to have green land (RGB ~100-150, 200-255, 100-150)
+        // and blue ocean (RGB ~100-150, 100-150, 200-255)
+        if (this.isLandColor(r, g, b)) {
+          tileData[y][x] = {
+            type: 'land',
+            elevation: 1,
+            accessible: true
+          };
+        } else {
+          tileData[y][x] = {
+            type: 'ocean',
+            elevation: 0,
+            accessible: true
+          };
+        }
+      }
+    }
+    
+    // Generate strategic ports along coastlines
+    const ports = this.generatePorts(tileData);
+    
+    // Mark port locations in tile data
+    ports.forEach(port => {
+      const x = Math.floor(port.position.x);
+      const y = Math.floor(port.position.y);
+      if (x >= 0 && x < this.targetWidth && y >= 0 && y < this.targetHeight) {
+        tileData[y][x] = {
+          type: 'port',
+          elevation: 0,
+          accessible: true
+        };
+      }
+    });
+    
+    // Clean up temporary image
+    image.destroy();
+    
+    return {
+      tileData,
+      mapWidth: this.targetWidth,
+      mapHeight: this.targetHeight,
+      ports
+    };
+  }
+
+  /**
+   * Determine if a pixel color represents land
+   */
+  private isLandColor(r: number, g: number, b: number): boolean {
+    // The pixel art map uses green for land
+    // Green channel should be significantly higher than red and blue
+    return g > 150 && g > r + 50 && g > b + 50;
+  }
+
+  /**
+   * Generate strategic port locations along coastlines
+   */
+  private generatePorts(tileData: TileData[][]): Array<{
+    id: string;
+    name: string;
+    position: { x: number; y: number };
+    region: string;
+    capacity: number;
+    connectedRoutes: string[];
+  }> {
+    const ports: Array<{
+      id: string;
+      name: string;
+      position: { x: number; y: number };
+      region: string;
+      capacity: number;
+      connectedRoutes: string[];
+    }> = [];
+    
+    // Define strategic port locations based on real-world geography
+    // These coordinates are approximate and based on the world map layout
+    const portLocations = [
+      // North America
+      { name: 'New York', region: 'North America', x: 75, y: 45, capacity: 1000 },
+      { name: 'Los Angeles', region: 'North America', x: 45, y: 55, capacity: 800 },
+      { name: 'Vancouver', region: 'North America', x: 40, y: 35, capacity: 600 },
+      { name: 'Miami', region: 'North America', x: 80, y: 70, capacity: 700 },
+      { name: 'Houston', region: 'North America', x: 65, y: 75, capacity: 900 },
+      
+      // South America
+      { name: 'Santos', region: 'South America', x: 95, y: 140, capacity: 800 },
+      { name: 'Buenos Aires', region: 'South America', x: 90, y: 160, capacity: 700 },
+      { name: 'Valparaiso', region: 'South America', x: 75, y: 155, capacity: 500 },
+      { name: 'Cartagena', region: 'South America', x: 75, y: 95, capacity: 600 },
+      
+      // Europe
+      { name: 'Rotterdam', region: 'Europe', x: 155, y: 40, capacity: 1200 },
+      { name: 'Hamburg', region: 'Europe', x: 160, y: 38, capacity: 1000 },
+      { name: 'Antwerp', region: 'Europe', x: 154, y: 42, capacity: 900 },
+      { name: 'Le Havre', region: 'Europe', x: 150, y: 45, capacity: 700 },
+      { name: 'Barcelona', region: 'Europe', x: 152, y: 55, capacity: 600 },
+      
+      // Africa
+      { name: 'Lagos', region: 'Africa', x: 155, y: 95, capacity: 600 },
+      { name: 'Durban', region: 'Africa', x: 175, y: 140, capacity: 500 },
+      { name: 'Cape Town', region: 'Africa', x: 170, y: 150, capacity: 400 },
+      { name: 'Alexandria', region: 'Africa', x: 170, y: 75, capacity: 800 },
+      
+      // Middle East
+      { name: 'Dubai', region: 'Middle East', x: 190, y: 80, capacity: 1000 },
+      { name: 'Kuwait', region: 'Middle East', x: 185, y: 78, capacity: 700 },
+      
+      // Asia
+      { name: 'Shanghai', region: 'Asia', x: 280, y: 75, capacity: 1500 },
+      { name: 'Singapore', region: 'Asia', x: 260, y: 105, capacity: 1200 },
+      { name: 'Hong Kong', region: 'Asia', x: 275, y: 82, capacity: 1100 },
+      { name: 'Tokyo', region: 'Asia', x: 310, y: 65, capacity: 1000 },
+      { name: 'Busan', region: 'Asia', x: 295, y: 65, capacity: 900 },
+      { name: 'Mumbai', region: 'Asia', x: 215, y: 90, capacity: 800 },
+      { name: 'Kolkata', region: 'Asia', x: 230, y: 85, capacity: 700 },
+      { name: 'Vladivostok', region: 'Asia', x: 300, y: 30, capacity: 400 },
+      
+      // Australia & Oceania
+      { name: 'Sydney', region: 'Australia', x: 340, y: 150, capacity: 800 },
+      { name: 'Melbourne', region: 'Australia', x: 335, y: 155, capacity: 700 },
+      { name: 'Brisbane', region: 'Australia', x: 345, y: 140, capacity: 600 },
+      { name: 'Perth', region: 'Australia', x: 315, y: 150, capacity: 500 },
+      { name: 'Auckland', region: 'Oceania', x: 380, y: 165, capacity: 400 },
+    ];
+    
+    // Filter ports to only include those that are near coastlines
+    portLocations.forEach((portInfo, index) => {
+      const x = Math.floor(portInfo.x);
+      const y = Math.floor(portInfo.y);
+      
+      // Check if location is valid and near coast
+      if (this.isValidPortLocation(tileData, x, y)) {
+        ports.push({
+          id: `port-${index + 1}`,
+          name: portInfo.name,
+          position: { x: portInfo.x, y: portInfo.y },
+          region: portInfo.region,
+          capacity: portInfo.capacity,
+          connectedRoutes: []
+        });
+      }
+    });
+    
+    return ports;
+  }
+
+  /**
+   * Check if a location is valid for a port (near coastline)
+   */
+  private isValidPortLocation(tileData: TileData[][], x: number, y: number): boolean {
+    if (x < 0 || x >= this.targetWidth || y < 0 || y >= this.targetHeight) {
+      return false;
+    }
+    
+    // Check if current tile is ocean or land
+    const currentTile = tileData[y][x];
+    
+    // Port should be in ocean or on coast
+    if (currentTile.type === 'land') {
+      // Check if there's ocean nearby (coastline)
+      for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          const checkX = x + dx;
+          const checkY = y + dy;
+          if (checkX >= 0 && checkX < this.targetWidth && 
+              checkY >= 0 && checkY < this.targetHeight) {
+            if (tileData[checkY][checkX].type === 'ocean') {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    } else {
+      // Ocean tile - check if there's land nearby
+      for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          const checkX = x + dx;
+          const checkY = y + dy;
+          if (checkX >= 0 && checkX < this.targetWidth && 
+              checkY >= 0 && checkY < this.targetHeight) {
+            if (tileData[checkY][checkX].type === 'land') {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    }
+  }
+} 
