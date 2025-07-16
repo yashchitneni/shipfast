@@ -1,7 +1,7 @@
 import { RealtimeChannel, RealtimePresenceState } from '@supabase/supabase-js';
 import { supabase } from '../../services/supabase';
 import { useEmpireStore } from '../empireStore';
-import { MarketGood, MarketEvent, Notification } from '../../types/game';
+import { MarketGood, MarketEvent, Notification } from '../../../types/game';
 
 // Multiplayer event types
 export enum MultiplayerEvent {

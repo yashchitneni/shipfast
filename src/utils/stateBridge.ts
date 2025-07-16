@@ -1,6 +1,6 @@
 import React from 'react';
 import { useEmpireStore, EmpireState } from '../store/empireStore';
-import { Asset, Route, MarketGood, MarketEvent, Ship, Plane } from '../types/game';
+import { Asset, Route, MarketGood, MarketEvent, Ship, Plane } from '../../types/game';
 
 // Event types for Phaser-React communication
 export enum BridgeEvent {

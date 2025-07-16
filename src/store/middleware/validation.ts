@@ -1,6 +1,6 @@
 import { StateCreator, StoreMutatorIdentifier } from 'zustand';
 import { EmpireState, EmpireActions } from '../empireStore';
-import { Asset, Route, Transaction } from '../../types/game';
+import { Asset, Route, Transaction } from '../../../types/game';
 
 // Validation rules
 export const ValidationRules = {

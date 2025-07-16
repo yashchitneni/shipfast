@@ -1,5 +1,5 @@
 import { useEmpireStore } from '../empireStore';
-import { Asset, Ship, Plane, Warehouse, Specialist, Route, AssetType } from '../../types/game';
+import { Asset, Ship, Plane, Warehouse, Specialist, Route, AssetType } from '../../../types/game';
 import { shallow } from 'zustand/shallow';
 import React from 'react';
 

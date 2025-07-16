@@ -18,7 +18,7 @@ import {
   Notification,
   Transaction,
   AssetType
-} from '../types/game';
+} from '../../types/game';
 
 // Import asset types from the asset store
 import {

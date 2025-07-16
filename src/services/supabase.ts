@@ -9,7 +9,7 @@ import {
   AICompanion,
   Transaction,
   Notification 
-} from '../types/game';
+} from '../../types/game';
 
 // Supabase configuration
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
