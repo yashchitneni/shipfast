@@ -18,7 +18,7 @@ import {
   Notification,
   Transaction,
   AssetType
-} from '../../types/game';
+} from '../types/game';
 
 // Import asset types from the asset store
 import {
@@ -356,7 +356,7 @@ export const useEmpireStore = create<EmpireState & EmpireActions>()(
                 state.player.level = newLevel;
                 // Add level up notification
                 get().addNotification({
-                  type: 'SUCCESS',
+                  type: 'success',
                   title: 'Level Up!',
                   message: `Congratulations! You've reached level ${newLevel}!`,
                   isRead: false

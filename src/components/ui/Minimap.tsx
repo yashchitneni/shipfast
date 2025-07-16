@@ -10,6 +10,12 @@ interface MinimapProps {
   onMinimapClick?: (worldX: number, worldY: number) => void;
 }
 
+// Isometric configuration - must match IsometricTileMap.ts
+const ISOMETRIC_CONFIG = {
+  tileWidth: 64,
+  tileHeight: 32
+};
+
 export const Minimap: React.FC<MinimapProps> = memo(({
   tileData,
   mapDimensions,
@@ -37,6 +43,27 @@ export const Minimap: React.FC<MinimapProps> = memo(({
     port: '#E03C31',
     viewport: '#FFD700',
     portMarker: '#FFD700'
+  };
+
+  // Correct isometric conversion functions (matching IsometricTileMap.ts)
+  const worldToTile = (worldX: number, worldY: number): { x: number; y: number } => {
+    const halfTileWidth = ISOMETRIC_CONFIG.tileWidth / 2;
+    const halfTileHeight = ISOMETRIC_CONFIG.tileHeight / 2;
+    
+    const tileX = Math.floor((worldX / halfTileWidth + worldY / halfTileHeight) / 2);
+    const tileY = Math.floor((worldY / halfTileHeight - worldX / halfTileWidth) / 2);
+    
+    return { x: tileX, y: tileY };
+  };
+
+  const tileToWorld = (tileX: number, tileY: number): { x: number; y: number } => {
+    const halfTileWidth = ISOMETRIC_CONFIG.tileWidth / 2;
+    const halfTileHeight = ISOMETRIC_CONFIG.tileHeight / 2;
+    
+    const x = (tileX - tileY) * halfTileWidth;
+    const y = (tileX + tileY) * halfTileHeight;
+    
+    return { x, y };
   };
 
   // Draw the minimap
@@ -97,11 +124,14 @@ export const Minimap: React.FC<MinimapProps> = memo(({
       }
     }
 
-    // Draw port markers
+    // Draw port markers using correct conversion
     Array.from(portNodes.values()).forEach(port => {
-      // Convert world coordinates to tile coordinates
-      const tileX = Math.floor((port.position.x / 64 + port.position.y / 32) / 2);
-      const tileY = Math.floor((port.position.y / 32 - port.position.x / 64) / 2);
+      // Convert world coordinates to tile coordinates using correct formula
+      const tilePos = worldToTile(port.position.x, port.position.y);
+      
+      // Clamp to map bounds
+      const tileX = Math.max(0, Math.min(mapDimensions.width - 1, tilePos.x));
+      const tileY = Math.max(0, Math.min(mapDimensions.height - 1, tilePos.y));
       
       // Draw port marker
       ctx.fillStyle = COLORS.portMarker;
@@ -116,26 +146,25 @@ export const Minimap: React.FC<MinimapProps> = memo(({
       ctx.fill();
     });
 
-    // Draw camera viewport
+    // Draw camera viewport with correct conversion
     if (cameraViewport && mapDimensions) {
-      // Convert world coordinates to tile coordinates first
-      // Using the inverse of the isometric conversion formula
-      const worldToTileX = (worldX: number, worldY: number) => {
-        return Math.floor((worldX / 32 + worldY / 16) / 2);
-      };
-      const worldToTileY = (worldX: number, worldY: number) => {
-        return Math.floor((worldY / 16 - worldX / 32) / 2);
-      };
+      // Convert camera viewport corners to tile coordinates
+      const topLeft = worldToTile(cameraViewport.x, cameraViewport.y);
+      const topRight = worldToTile(cameraViewport.x + cameraViewport.width, cameraViewport.y);
+      const bottomLeft = worldToTile(cameraViewport.x, cameraViewport.y + cameraViewport.height);
+      const bottomRight = worldToTile(cameraViewport.x + cameraViewport.width, cameraViewport.y + cameraViewport.height);
       
-      // Convert viewport corners to tile coordinates
-      const topLeftTileX = worldToTileX(cameraViewport.x, cameraViewport.y);
-      const topLeftTileY = worldToTileY(cameraViewport.x, cameraViewport.y);
+      // Find the bounding box of the viewport in tile coordinates
+      const minTileX = Math.max(0, Math.min(topLeft.x, topRight.x, bottomLeft.x, bottomRight.x));
+      const maxTileX = Math.min(mapDimensions.width - 1, Math.max(topLeft.x, topRight.x, bottomLeft.x, bottomRight.x));
+      const minTileY = Math.max(0, Math.min(topLeft.y, topRight.y, bottomLeft.y, bottomRight.y));
+      const maxTileY = Math.min(mapDimensions.height - 1, Math.max(topLeft.y, topRight.y, bottomLeft.y, bottomRight.y));
       
       // Convert to minimap coordinates
-      const viewX = topLeftTileX * TILE_SIZE;
-      const viewY = topLeftTileY * TILE_SIZE;
-      const viewWidth = (cameraViewport.width / 64) * TILE_SIZE;
-      const viewHeight = (cameraViewport.height / 32) * TILE_SIZE;
+      const viewX = minTileX * TILE_SIZE;
+      const viewY = minTileY * TILE_SIZE;
+      const viewWidth = (maxTileX - minTileX + 1) * TILE_SIZE;
+      const viewHeight = (maxTileY - minTileY + 1) * TILE_SIZE;
 
       // Draw viewport rectangle
       ctx.strokeStyle = COLORS.viewport;
@@ -163,11 +192,10 @@ export const Minimap: React.FC<MinimapProps> = memo(({
     const tileX = Math.floor(x / TILE_SIZE);
     const tileY = Math.floor(y / TILE_SIZE);
     
-    // Convert tile coordinates to world coordinates using isometric formula
-    const worldX = (tileX - tileY) * 32;
-    const worldY = (tileX + tileY) * 16;
+    // Convert tile coordinates to world coordinates using correct formula
+    const worldPos = tileToWorld(tileX, tileY);
 
-    onMinimapClick(worldX, worldY);
+    onMinimapClick(worldPos.x, worldPos.y);
   };
 
   // Don't render until we have data
