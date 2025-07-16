@@ -163,9 +163,10 @@ export class ImageMapProcessor {
    * Determine if a pixel color represents land
    */
   private isLandColor(r: number, g: number, b: number): boolean {
-    // The pixel art map uses green for land
-    // Green channel should be significantly higher than red and blue
-    return g > 150 && g > r + 50 && g > b + 50;
+    // The pixel art map uses green for land (RGB ~106,190,48)
+    // and blue for ocean (RGB ~91,110,225)
+    // Green channel should be significantly higher than blue
+    return g > b && g > 150;
   }
 
   /**
@@ -188,15 +189,15 @@ export class ImageMapProcessor {
       connectedRoutes: string[];
     }> = [];
     
-    // Define strategic port locations based on real-world geography
-    // These coordinates are approximate and based on the world map layout
+    // Define strategic port locations based on the pixel art map
+    // Coordinates adjusted for 400x200 tile map from 1024x512 image
     const portLocations = [
       // North America
-      { name: 'New York', region: 'North America', x: 75, y: 45, capacity: 1000 },
-      { name: 'Los Angeles', region: 'North America', x: 45, y: 55, capacity: 800 },
-      { name: 'Vancouver', region: 'North America', x: 40, y: 35, capacity: 600 },
-      { name: 'Miami', region: 'North America', x: 80, y: 70, capacity: 700 },
-      { name: 'Houston', region: 'North America', x: 65, y: 75, capacity: 900 },
+      { name: 'New York', region: 'North America', x: 90, y: 60, capacity: 1000 },
+      { name: 'Los Angeles', region: 'North America', x: 50, y: 70, capacity: 800 },
+      { name: 'Vancouver', region: 'North America', x: 45, y: 50, capacity: 600 },
+      { name: 'Miami', region: 'North America', x: 95, y: 85, capacity: 700 },
+      { name: 'Houston', region: 'North America', x: 80, y: 80, capacity: 900 },
       
       // South America
       { name: 'Santos', region: 'South America', x: 95, y: 140, capacity: 800 },
