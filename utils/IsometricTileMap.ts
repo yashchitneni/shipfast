@@ -42,21 +42,10 @@ export class IsometricTileMap {
   }
 
   /**
-   * Initialize the map by loading and processing the world map image
+   * Initialize the map by processing the world map image
    */
   async initialize(): Promise<void> {
-    // Load the world map image
-    this.imageProcessor.preload();
-    
-    // Wait for the image to load
-    await new Promise<void>((resolve) => {
-      this.scene.load.once('complete', () => {
-        resolve();
-      });
-      this.scene.load.start();
-    });
-    
-    // Process the image to generate tile data
+    // Process the image to generate tile data (image already loaded in scene preload)
     const mapData = await this.imageProcessor.processImage();
     
     // Convert processed data to TileData format
@@ -81,11 +70,15 @@ export class IsometricTileMap {
   }
 
   create(): void {
-    // Use image-based generation instead of procedural
-    this.initialize().then(() => {
-      // Create visual tiles after data is loaded
+    // For backward compatibility, use procedural generation if not initialized
+    if (this.tileData.length === 0) {
+      console.log('Using procedural generation - image not loaded yet');
+      this.generateMapData();
       this.createTiles();
-    });
+    } else {
+      // If already initialized with image data, just create tiles
+      this.createTiles();
+    }
   }
 
   /**

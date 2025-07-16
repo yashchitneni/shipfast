@@ -40,19 +40,29 @@ export class ImageMapProcessor {
   }
 
   /**
-   * Load the world map image
+   * Load the world map image (no longer needed - loaded in scene preload)
    */
   preload(): void {
-    this.scene.load.image(this.imageKey, '/world-map.png');
+    // Image is now loaded in the scene's preload method
   }
 
   /**
    * Process the loaded image and convert to tile data
    */
   async processImage(): Promise<ProcessedMapData> {
+    console.log('Processing image:', this.imageKey);
+    
+    // Check if texture exists
+    if (!this.scene.textures.exists(this.imageKey)) {
+      console.error(`Texture '${this.imageKey}' not found!`);
+      throw new Error(`Texture '${this.imageKey}' not found`);
+    }
+    
     const image = this.scene.add.image(0, 0, this.imageKey);
     const texture = image.texture;
     const canvas = texture.getSourceImage() as HTMLCanvasElement;
+    
+    console.log('Image dimensions:', canvas.width, 'x', canvas.height);
     
     // Create a temporary canvas to process the image
     const tempCanvas = document.createElement('canvas');
@@ -83,6 +93,9 @@ export class ImageMapProcessor {
     }
     
     // Process each pixel
+    let landCount = 0;
+    let oceanCount = 0;
+    
     for (let y = 0; y < this.targetHeight; y++) {
       for (let x = 0; x < this.targetWidth; x++) {
         const index = (y * this.targetWidth + x) * 4;
@@ -90,6 +103,11 @@ export class ImageMapProcessor {
         const g = data[index + 1];
         const b = data[index + 2];
         const a = data[index + 3];
+        
+        // Sample some pixels for debugging
+        if (x % 50 === 0 && y % 50 === 0) {
+          console.log(`Pixel at (${x},${y}): RGB(${r},${g},${b})`);
+        }
         
         // Determine tile type based on color
         // The image appears to have green land (RGB ~100-150, 200-255, 100-150)
@@ -100,15 +118,19 @@ export class ImageMapProcessor {
             elevation: 1,
             accessible: true
           };
+          landCount++;
         } else {
           tileData[y][x] = {
             type: 'ocean',
             elevation: 0,
             accessible: true
           };
+          oceanCount++;
         }
       }
     }
+    
+    console.log(`Processed ${this.targetWidth}x${this.targetHeight} map: ${landCount} land tiles, ${oceanCount} ocean tiles`);
     
     // Generate strategic ports along coastlines
     const ports = this.generatePorts(tileData);

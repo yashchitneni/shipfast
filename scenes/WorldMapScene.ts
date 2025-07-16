@@ -114,6 +114,15 @@ export default class WorldMapScene extends Phaser.Scene {
   }
 
   /**
+   * @method preload
+   * @description Load assets before the scene starts
+   */
+  preload(): void {
+    // Load the pixel art world map
+    this.load.image('world-map', '/world-map.png');
+  }
+
+  /**
    * @method create
    * @description Called once when the scene is created. This method sets up the initial
    * state of the game world, including the map, camera, input handlers, and bridges.
@@ -121,10 +130,11 @@ export default class WorldMapScene extends Phaser.Scene {
   create(): void {
     // Create isometric map with image-based generation
     this.isometricMap = new IsometricTileMap(this);
-    this.isometricMap.create();
     
-    // Wait for the map to initialize, then set up the rest
+    // Initialize the map with image data first, then create
     this.isometricMap.initialize().then(() => {
+      // Now create the visual tiles
+      this.isometricMap.create();
       // Extract ports from the isometric map and store them
       this.extractPortsFromMap();
       
