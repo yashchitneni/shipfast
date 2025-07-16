@@ -1,15 +1,17 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as Phaser from 'phaser';
 import gameConfig from '../scripts/gameConfig';
 import PreloaderScene from '../scenes/PreloaderScene';
 import WorldMapScene from '../scenes/WorldMapScene';
 import { useEmpireStore } from '../src/store/empireStore';
+import { GameHUD } from '../src/components/game/GameHUD';
 
 export default function GameCanvas() {
   const gameRef = useRef<Phaser.Game | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [currentScene, setCurrentScene] = useState<Phaser.Scene | null>(null);
   
   // Get store state and actions
   const { isPaused, gameSpeed, setPlayer, placedAssets, loadPlayerAssets } = useEmpireStore();
@@ -78,6 +80,7 @@ export default function GameCanvas() {
       if (scene.scene.key === 'WorldMapScene') {
         // WorldMapScene is ready - asset system can now interact with it
         console.log('WorldMapScene ready for asset system');
+        setCurrentScene(scene);
       }
     });
   };
@@ -119,11 +122,14 @@ export default function GameCanvas() {
   }, [placedAssets]);
 
   return (
-    <div
-      ref={containerRef}
-      id="game-container"
-      className="w-full h-full relative bg-ocean-blue"
-      style={{ minHeight: '600px' }}
-    />
+    <div className="relative w-full h-full">
+      <div
+        ref={containerRef}
+        id="game-container"
+        className="w-full h-full relative bg-ocean-blue"
+        style={{ minHeight: '600px' }}
+      />
+      {currentScene && <GameHUD scene={currentScene} />}
+    </div>
   );
 }

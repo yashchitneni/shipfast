@@ -4,6 +4,7 @@ import { useEmpireStore } from '../src/store/empireStore';
 import { assetBridge } from '../utils/assetBridge';
 import { IsometricTileMap } from '../utils/IsometricTileMap';
 import { CameraController } from '../utils/CameraController';
+import { minimapBridge } from '../utils/minimapBridge';
 
 // Create a simple route render system interface for now
 interface RouteRenderSystem {
@@ -61,13 +62,24 @@ const COLORS = {
 
 // Camera configuration
 const CAMERA_CONFIG = {
-  zoomMin: 0.5,
+  zoomMin: 0.1,
   zoomMax: 2.0,
   zoomStep: 0.1,
   panSpeed: 5,
-  smoothFactor: 0.95
+  smoothFactor: 0.95,
+  initialZoom: 0.15
 };
 
+/**
+ * @class WorldMapScene
+ * @description The main Phaser scene that renders the interactive game world.
+ * It is responsible for:
+ * - Creating and rendering the isometric tile map.
+ * - Managing camera controls (pan, zoom).
+ * - Handling user input on the game canvas.
+ * - Displaying game objects like ports and assets (via bridges).
+ * - Connecting with the Zustand store via bridges to keep the visual state in sync.
+ */
 export default class WorldMapScene extends Phaser.Scene {
   private isometricMap!: IsometricTileMap;
   private cameraController!: CameraController;
@@ -77,6 +89,7 @@ export default class WorldMapScene extends Phaser.Scene {
   private dragStartY: number = 0;
   private cameraDragStartX: number = 0;
   private cameraDragStartY: number = 0;
+  private hasDraggedSignificantly: boolean = false;
   
   // Lighting
   private ambientLight!: Phaser.GameObjects.Rectangle;
@@ -100,10 +113,18 @@ export default class WorldMapScene extends Phaser.Scene {
     super({ key: SceneKeys.WORLD_MAP });
   }
 
+  /**
+   * @method create
+   * @description Called once when the scene is created. This method sets up the initial
+   * state of the game world, including the map, camera, input handlers, and bridges.
+   */
   create(): void {
     // Create isometric map with procedural generation
     this.isometricMap = new IsometricTileMap(this);
     this.isometricMap.create();
+    
+    // Extract ports from the isometric map and store them
+    this.extractPortsFromMap();
     
     // Set up camera
     this.setupCamera();
@@ -133,6 +154,9 @@ export default class WorldMapScene extends Phaser.Scene {
     // Initialize port bridge with this scene
     portBridge.setScene(this);
     
+    // Initialize minimap bridge with this scene
+    minimapBridge.setScene(this);
+    
     // Get route render system from bridge
     this.routeRenderSystem = routeBridge.getRouteRenderSystem()!;
     
@@ -150,46 +174,77 @@ export default class WorldMapScene extends Phaser.Scene {
     
     // Set up route bridge event listeners
     this.setupRouteBridgeEvents();
+    
+    // Set up asset placement subscription
+    this.setupAssetPlacement();
+    
+    // Set up minimap
+    this.setupMinimap();
+    
+    // Set up zoom controls
+    this.setupZoomControls();
+    
+    // Emit scene ready event
+    this.game.events.emit('sceneready', this);
   }
 
+  /**
+   * @private
+   * @method setupCamera
+   * @description Initializes the main camera, setting its initial zoom, position, and boundaries.
+   */
   private setupCamera(): void {
     const camera = this.cameras.main;
     
-    // Set initial zoom
-    camera.setZoom(1);
+    // Set initial zoom to show more of the larger map
+    camera.setZoom(CAMERA_CONFIG.initialZoom);
     
-    // Center on map
+    // Center on map (adjust for larger map)
     camera.centerOn(0, 0);
     
-    // Set bounds (will be adjusted based on map size)
+    // Set bounds with more generous padding for the larger map
     const mapBounds = this.isometricMap.getMapBounds();
     camera.setBounds(
-      mapBounds.x - 200,
-      mapBounds.y - 200,
-      mapBounds.width + 200,
-      mapBounds.height + 200
+      mapBounds.x - 500,
+      mapBounds.y - 500,
+      mapBounds.width + 1000,
+      mapBounds.height + 1000
     );
   }
 
+  /**
+   * @private
+   * @method setupInputHandlers
+   * @description Configures all user input listeners for the scene, including
+   * mouse wheel for zooming, pointer dragging for panning, and keyboard controls.
+   */
   private setupInputHandlers(): void {
     // Mouse wheel zoom
     this.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: any[], deltaX: number, deltaY: number) => {
       const camera = this.cameras.main;
       const zoom = camera.zoom;
       
+      let newZoom;
       if (deltaY > 0) {
         // Zoom out
-        camera.setZoom(Math.max(CAMERA_CONFIG.zoomMin, zoom - CAMERA_CONFIG.zoomStep));
+        newZoom = Math.max(CAMERA_CONFIG.zoomMin, zoom - CAMERA_CONFIG.zoomStep);
       } else {
         // Zoom in
-        camera.setZoom(Math.min(CAMERA_CONFIG.zoomMax, zoom + CAMERA_CONFIG.zoomStep));
+        newZoom = Math.min(CAMERA_CONFIG.zoomMax, zoom + CAMERA_CONFIG.zoomStep);
       }
+      
+      camera.setZoom(newZoom);
+      
+      // Emit zoom change event for UI synchronization
+      camera.emit('zoomchange', newZoom);
+      minimapBridge.emit('zoom-update', newZoom);
     });
     
     // Mouse drag pan
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (pointer.leftButtonDown()) {
         this.isDragging = true;
+        this.hasDraggedSignificantly = false;
         this.dragStartX = pointer.x;
         this.dragStartY = pointer.y;
         this.cameraDragStartX = this.cameras.main.scrollX;
@@ -207,6 +262,12 @@ export default class WorldMapScene extends Phaser.Scene {
         const dragX = this.dragStartX - pointer.x;
         const dragY = this.dragStartY - pointer.y;
         
+        // Check if we've dragged significantly (more than 10 pixels to be more forgiving)
+        const dragDistance = Math.sqrt(dragX * dragX + dragY * dragY);
+        if (dragDistance > 10 && !this.hasDraggedSignificantly) {
+          this.hasDraggedSignificantly = true;
+        }
+        
         this.cameras.main.setScroll(
           this.cameraDragStartX + dragX,
           this.cameraDragStartY + dragY
@@ -214,8 +275,19 @@ export default class WorldMapScene extends Phaser.Scene {
       }
     });
     
-    this.input.on('pointerup', () => {
+    this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      // Only clear selected port if we weren't dragging significantly and clicked on empty area
+      if (this.isDragging && !this.hasDraggedSignificantly && pointer.leftButtonReleased()) {
+        const hitObjects = this.input.hitTestPointer(pointer);
+        if (hitObjects.length === 0) {
+          const store = useEmpireStore.getState();
+          store.setSelectedPort(null);
+        }
+      }
+      
+      // Reset drag state
       this.isDragging = false;
+      this.hasDraggedSignificantly = false;
     });
     
     // Keyboard controls
@@ -224,20 +296,40 @@ export default class WorldMapScene extends Phaser.Scene {
       this.cameraController.setCursors(cursors);
     }
     
-    // ESC to deselect
-    this.input.keyboard?.on('keydown-ESC', () => {
-      if (this.selectedShip) {
-        this.selectedShip.clearTint();
-        this.selectedShip = null;
-        useEmpireStore.getState().setSelectedShip(null);
-      }
-    });
+        // ESC to deselect or cancel placement
+    if (this.input.keyboard) {
+      this.input.keyboard.on('keydown-ESC', () => {
+        const store = useEmpireStore.getState();
+        
+        // Cancel asset placement if active
+        if (store.assetToPlace) {
+          store.setAssetToPlace(null);
+          return;
+        }
+        
+        // Close port panel if open
+        if (store.selectedPort) {
+          store.setSelectedPort(null);
+          return;
+        }
+        
+        // Otherwise deselect ship
+        if (this.selectedShip) {
+          this.selectedShip.clearTint();
+          this.selectedShip = null;
+          store.setSelectedShip(null);
+        }
+      });
+    }
     
     // Touch support for mobile
     this.input.addPointer(2); // Support up to 3 touch points
   }
 
   private createLightingSystem(): void {
+    // Disabled lighting system for now - it was creating a dark overlay
+    // We can re-enable this later with better visual settings
+    /*
     const { width, height } = this.cameras.main;
     
     // Create ambient light overlay
@@ -248,9 +340,12 @@ export default class WorldMapScene extends Phaser.Scene {
     
     // Initial lighting update
     this.updateLighting();
+    */
   }
 
   private updateLighting(): void {
+    // Disabled along with lighting system
+    /*
     // Calculate lighting based on time of day
     let lightIntensity = 0.1;
     
@@ -266,6 +361,7 @@ export default class WorldMapScene extends Phaser.Scene {
     }
     
     this.ambientLight.setAlpha(lightIntensity);
+    */
   }
 
 
@@ -419,6 +515,122 @@ export default class WorldMapScene extends Phaser.Scene {
     // Store unsubscribe function for cleanup
     this.events.once('shutdown', unsubscribe);
   }
+  
+  private setupAssetPlacement(): void {
+    // Subscribe to assetToPlace changes
+    this.unsubscribeAssetToPlace = useEmpireStore.subscribe(
+      (state) => state.assetToPlace,
+      (assetToPlace) => {
+        if (assetToPlace) {
+          this.createGhostSprite(assetToPlace);
+        } else {
+          this.destroyGhostSprite();
+        }
+      }
+    );
+    
+    // Clean up subscription on shutdown
+    this.events.once('shutdown', () => {
+      if (this.unsubscribeAssetToPlace) {
+        this.unsubscribeAssetToPlace();
+      }
+    });
+  }
+  
+  private createGhostSprite(definitionId: string): void {
+    const store = useEmpireStore.getState();
+    const definition = store.assetDefinitions.get(definitionId);
+    
+    if (!definition) {
+      console.error('Asset definition not found:', definitionId);
+      return;
+    }
+    
+    // Destroy existing ghost sprite if any
+    this.destroyGhostSprite();
+    
+    // Create a simple colored rectangle as the ghost sprite for now
+    // In a real implementation, you'd load the actual asset sprite
+    const color = definition.type === 'ship' ? 0x00A652 : 0x0077BE;
+    this.ghostSprite = this.add.image(0, 0, AssetKeys.SHIP_CARGO);
+    this.ghostSprite.setAlpha(0.5);
+    this.ghostSprite.setDepth(1000);
+    this.ghostSprite.setTint(color);
+    
+    // Make it follow the mouse
+    this.input.on('pointermove', this.updateGhostPosition, this);
+    this.input.on('pointerdown', this.handleAssetPlacement, this);
+  }
+  
+  private destroyGhostSprite(): void {
+    if (this.ghostSprite) {
+      this.ghostSprite.destroy();
+      this.ghostSprite = null;
+    }
+    
+    // Clear placement indicator
+    this.validPlacementIndicator.clear();
+    
+    // Remove event listeners
+    this.input.off('pointermove', this.updateGhostPosition, this);
+    this.input.off('pointerdown', this.handleAssetPlacement, this);
+  }
+  
+  private updateGhostPosition(pointer: Phaser.Input.Pointer): void {
+    if (!this.ghostSprite) return;
+    
+    const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+    this.ghostSprite.setPosition(worldPoint.x, worldPoint.y);
+    
+    // Check if near a port
+    const store = useEmpireStore.getState();
+    const snapPort = store.checkPortSnap({ x: worldPoint.x, y: worldPoint.y }, 100);
+    
+    // Update visual feedback
+    this.validPlacementIndicator.clear();
+    
+    if (snapPort) {
+      // Snap to port position
+      this.ghostSprite.setPosition(snapPort.position.x, snapPort.position.y);
+      this.ghostSprite.setTint(0x00FF00); // Green for valid placement
+      
+      // Draw a circle around the port to indicate valid placement
+      this.validPlacementIndicator.lineStyle(3, 0x00FF00, 0.8);
+      this.validPlacementIndicator.strokeCircle(snapPort.position.x, snapPort.position.y, 50);
+    } else {
+      this.ghostSprite.setTint(0xFF0000); // Red for invalid placement
+    }
+  }
+  
+  /**
+   * @private
+   * @method handleAssetPlacement
+   * @description Event handler for when the player clicks to place an asset.
+   * It checks for a valid snap-to-port location and calls the store action to finalize the placement.
+   * @param {Phaser.Input.Pointer} pointer - The pointer event object.
+   */
+  private handleAssetPlacement(pointer: Phaser.Input.Pointer): void {
+    if (!this.ghostSprite || !pointer.leftButtonDown()) return;
+    
+    const store = useEmpireStore.getState();
+    const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+    const snapPort = store.checkPortSnap({ x: worldPoint.x, y: worldPoint.y }, 100);
+    
+    if (snapPort && store.assetToPlace) {
+      // Start the preview at the port position
+      store.startAssetPreview(store.assetToPlace, snapPort.position);
+      
+      // Place the asset
+      store.placeAsset().then((result) => {
+        if (result.success) {
+          console.log('Asset placed successfully!');
+          store.setAssetToPlace(null);
+        } else {
+          console.error('Failed to place asset:', result.error);
+        }
+      });
+    }
+  }
 
   private showTooltip(text: string, x: number, y: number): void {
     this.hideTooltip();
@@ -434,6 +646,14 @@ export default class WorldMapScene extends Phaser.Scene {
     this.tooltip = null;
   }
 
+  /**
+   * @method update
+   * @description The main game loop, called on every frame.
+   * It's responsible for continuous updates, such as moving the camera,
+   * updating animations, and checking for real-time events.
+   * @param {number} time - The current game time in milliseconds.
+   * @param {number} delta - The delta time in milliseconds since the last frame.
+   */
   update(time: number, delta: number): void {
     // Update camera controller
     if (this.cameraController) {
@@ -445,22 +665,225 @@ export default class WorldMapScene extends Phaser.Scene {
       this.routeRenderSystem.update(time, delta);
     }
     
+    // Update minimap viewport (throttled to every 100ms)
+    if (Math.floor(time) % 100 < delta) {
+      this.updateMinimapViewport();
+    }
+    
     // Update time of day (24-hour cycle over 10 minutes)
     this.timeOfDay += 0.004; // Adjust speed as needed
     if (this.timeOfDay >= 24) {
       this.timeOfDay = 0;
     }
     
-    // Update lighting
+    // Update lighting - disabled for now
+    /*
     if (Math.floor(time / 1000) % 1 === 0) {
       this.updateLighting();
     }
+    */
     
     // Update ship animations (legacy compatibility)
     this.ships.forEach((ship) => {
       // Add gentle bobbing effect
       ship.y += Math.sin(time * 0.001 + ship.x) * 0.1;
     });
+  }
+
+  private extractPortsFromMap(): void {
+    const store = useEmpireStore.getState();
+    const tileData = this.isometricMap.getTileData();
+    const { width, height } = this.isometricMap.getMapDimensions();
+    
+    const portNodes: Array<{
+      id: string;
+      name: string;
+      position: { x: number; y: number };
+      region: string;
+      capacity: number;
+      connectedRoutes: string[];
+    }> = [];
+    
+    // Iterate through tile data to find ports
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const tile = tileData[y][x];
+        
+        if (tile.type === 'port') {
+          // Convert tile coordinates to world coordinates
+          const worldPos = this.isometricMap.tileToWorld(x, y);
+          
+          // Create a port node
+          const portNode = {
+            id: `port_${x}_${y}`,
+            name: `Port ${portNodes.length + 1}`,
+            position: { x: worldPos.x, y: worldPos.y },
+            region: 'default',
+            capacity: 100,
+            connectedRoutes: []
+          };
+          
+          portNodes.push(portNode);
+          
+          // Create a visual port marker with click handler
+          this.createPortMarker(portNode);
+        }
+      }
+    }
+    
+    // Register all found ports with the empire store
+    console.log(`Found ${portNodes.length} ports in the map`);
+    store.setPortNodes(portNodes);
+  }
+  
+  private createPortMarker(portNode: { id: string; name: string; position: { x: number; y: number }; region: string }): void {
+    // Create a simple port marker sprite (using a circle for now)
+    const portMarker = this.add.circle(portNode.position.x, portNode.position.y, 20, 0xFFD700, 0.6);
+    portMarker.setStrokeStyle(2, 0xFFFFFF);
+    portMarker.setDepth(500);
+    
+    // Make it interactive
+    portMarker.setInteractive({ useHandCursor: true });
+    
+    // Store port data
+    portMarker.setData('type', 'port');
+    portMarker.setData('id', portNode.id);
+    portMarker.setData('name', portNode.name);
+    portMarker.setData('position', portNode.position);
+    
+    // Add hover effect
+    portMarker.on('pointerover', () => {
+      portMarker.setScale(1.2);
+      portMarker.setAlpha(0.8);
+      this.showTooltip(portNode.name, portNode.position.x, portNode.position.y - 40);
+    });
+    
+    portMarker.on('pointerout', () => {
+      portMarker.setScale(1);
+      portMarker.setAlpha(0.6);
+      this.hideTooltip();
+    });
+    
+    // Add click handler for zoom
+    portMarker.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (pointer.leftButtonDown()) {
+        // Prevent clearing the selected port when clicking on a port
+        pointer.event.stopPropagation();
+        this.zoomToPort(portNode);
+      }
+    });
+  }
+  
+  private zoomToPort(portNode: { id: string; name: string; position: { x: number; y: number } }): void {
+    const store = useEmpireStore.getState();
+    
+    // Cancel any active asset placement
+    if (store.assetToPlace) {
+      store.setAssetToPlace(null);
+    }
+    
+    // Use camera controller to pan and zoom
+    this.cameraController.panTo(portNode.position.x, portNode.position.y);
+    this.cameraController.zoomTo(1.5);
+    
+    // Emit event for UI to show port management panel
+    this.events.emit('port-focused', portNode);
+    
+    // Store the focused port in the empire store
+    store.setSelectedPort(portNode.id);
+  }
+  
+  private setupMinimap(): void {
+    // Send initial tile data to minimap
+    const tileData = this.isometricMap.getTileData();
+    const mapDimensions = this.isometricMap.getMapDimensions();
+    
+    if (tileData && mapDimensions && tileData.length > 0) {
+      minimapBridge.updateMinimapData({
+        tileData,
+        mapDimensions
+      });
+      
+      // Send initial viewport
+      this.updateMinimapViewport();
+    }
+    
+    // Listen for minimap clicks
+    this.events.on('minimap-click', (position: { x: number; y: number }) => {
+      this.cameraController.panTo(position.x, position.y);
+    });
+
+    minimapBridge.on('zoom-in', () => {
+      this.cameraController.zoomTo(this.cameras.main.zoom + CAMERA_CONFIG.zoomStep);
+    });
+    minimapBridge.on('zoom-out', () => {
+      this.cameraController.zoomTo(this.cameras.main.zoom - CAMERA_CONFIG.zoomStep);
+    });
+    minimapBridge.on('world-view', () => {
+      this.cameraController.zoomTo(CAMERA_CONFIG.initialZoom);
+      this.cameraController.panTo(0, 0);
+    });
+    
+    // Update camera viewport on camera move (throttled)
+    let lastViewportUpdate = 0;
+    this.cameras.main.on('followupdate', () => {
+      const now = Date.now();
+      if (now - lastViewportUpdate > 100) { // Throttle to 10 FPS
+        this.updateMinimapViewport();
+        lastViewportUpdate = now;
+      }
+    });
+  }
+  
+  private setupZoomControls(): void {
+    // Listen for zoom control events
+    this.events.on('zoom-in', () => {
+      const camera = this.cameras.main;
+      const currentZoom = camera.zoom;
+      const newZoom = Math.min(CAMERA_CONFIG.zoomMax, currentZoom + CAMERA_CONFIG.zoomStep);
+      
+      camera.setZoom(newZoom);
+      camera.emit('zoomchange', newZoom);
+    });
+    
+    this.events.on('zoom-out', () => {
+      const camera = this.cameras.main;
+      const currentZoom = camera.zoom;
+      const newZoom = Math.max(CAMERA_CONFIG.zoomMin, currentZoom - CAMERA_CONFIG.zoomStep);
+      
+      camera.setZoom(newZoom);
+      camera.emit('zoomchange', newZoom);
+    });
+    
+    this.events.on('world-view', () => {
+      const camera = this.cameras.main;
+      
+      // Reset to world view with zoom level that shows the entire map
+      camera.setZoom(CAMERA_CONFIG.initialZoom);
+      camera.centerOn(0, 0);
+      camera.emit('zoomchange', CAMERA_CONFIG.initialZoom);
+      
+      // Clear selected port
+      const store = useEmpireStore.getState();
+      store.setSelectedPort(null);
+    });
+  }
+  
+  private updateMinimapViewport(): void {
+    // Throttle minimap updates to prevent infinite loops
+    if (!minimapBridge || typeof minimapBridge.updateCameraViewport !== 'function') {
+      return;
+    }
+    
+    const camera = this.cameras.main;
+    const viewport = {
+      x: camera.scrollX,
+      y: camera.scrollY,
+      width: camera.width / camera.zoom,
+      height: camera.height / camera.zoom
+    };
+    
+    minimapBridge.updateCameraViewport(viewport);
   }
 
   shutdown(): void {
@@ -472,5 +895,8 @@ export default class WorldMapScene extends Phaser.Scene {
     
     // Clean up port bridge
     portBridge.destroy();
+    
+    // Clean up minimap bridge
+    minimapBridge.destroy();
   }
 }

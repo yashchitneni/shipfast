@@ -105,6 +105,22 @@ In our game, the "guests" are the global market. Keeping the market "happy" mean
 *   **Multiplayer Competition:** The player exists in a shared world.
     *   **Player Experience:** Another player's actions have a direct impact. If a rival buys up the entire available supply of new ships, the player will have to wait for the "manufacturers" to replenish the stock or pay a premium on the second-hand market. The real-time auctions are direct, head-to-head competitive events.
 
+### **Section 2.5: The Interactive World Map**
+
+The game world is presented to the player as a **stylized, isometric 2D map**. This is not a geographically exact replica of Earth, but a visually engaging representation featuring recognizable continents, major oceans, and key economic regions. The map is the player's primary canvas for building and managing their empire.
+
+*   **Appearance and Feel:** The visual style is clean and data-driven, blending the charm of classic tycoon games with a modern, professional aesthetic. The map is vibrant, with animated ocean textures, weather effects, and a full day/night cycle that impacts gameplay.
+
+*   **Key Interactive Elements:**
+    *   **Ports:** These are the central nodes of the game. They are represented as interactive icons on the map. As the player zooms in, a simple dot can resolve into a detailed sprite showing docks, container yards, and warehouses, visually indicating the port's scale and activity level.
+    *   **Trade Routes:** Drawn by the player, these appear as animated, color-coded lines connecting ports. The color and animation speed provide at-a-glance information about the route's profitability and status.
+    *   **Assets:** Player-owned ships and planes are represented by sprites that physically move along their assigned routes. Warehouses and other infrastructure are placed at ports. Rival assets are also visible, providing a sense of a living, competitive world.
+
+*   **Player Interaction:**
+    *   **Pan and Zoom:** The player has full freedom to navigate the map. Panning is achieved by clicking and dragging, while zooming is controlled by the mouse wheel. Zooming is a critical mechanic; zooming out provides a strategic global overview, while zooming in reveals fine-grained details, port-level statistics, and localized asset availability.
+    *   **Selection and Information:** Clicking on any element—a port, a ship, a route—opens a contextual UI panel with detailed information, stats, and available actions. This is how players drill down from the global view to make specific operational decisions.
+    *   **Asset Placement:** After purchasing an asset, the player enters a "placement mode." A ghost image of the asset appears on the cursor, which can then be placed at a valid location (e.g., a ship must be placed at a port dock). The map provides clear visual feedback on valid and invalid placement locations.
+
 ### **Section 3: Game Features & Systems**
 
 #### **Game Modes**

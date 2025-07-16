@@ -3,20 +3,29 @@
 import { useEmpireStore, usePlayer } from '../src/store/empireStore';
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
+import GameHUD from '../src/components/game/GameHUD';
 
 // Dynamically import the new UI components
 const MarketTradingPanel = dynamic(() => import('../app/components/market/MarketTradingPanel'), { ssr: false });
-const RouteManager = dynamic(() => import('./RouteManager'), { ssr: false });
+const RouteManager = dynamic(() => import('../app/components/routes/RouteManager'), { ssr: false });
 const FinancialDashboard = dynamic(() => import('../app/components/finance/FinancialDashboard'), { ssr: false });
 const AICompanionPanel = dynamic(() => import('../app/components/ai/AICompanionPanel'), { ssr: false });
 const AssetManager = dynamic(() => import('../app/components/assets/AssetManager').then(mod => ({ default: mod.AssetManager })), { ssr: false });
 
+/**
+ * GameUI is the top-level React component that renders the entire user interface
+ * on top of the Phaser game canvas. It acts as the main orchestrator for all UI elements,
+ * including the HUD, navigation bars, and dynamic side panels.
+ *
+ * @returns {React.ReactElement} The rendered game UI.
+ */
 export default function GameUI() {
   const player = usePlayer();
   const { activePanel, setActivePanel, isPaused, setPaused } = useEmpireStore();
 
   return (
     <div className="absolute inset-0 pointer-events-none">
+      <GameHUD />
       {/* Top Bar */}
       <div className="absolute top-0 left-0 right-0 bg-gray-900/90 text-white p-4 pointer-events-auto">
         <div className="flex justify-between items-center max-w-7xl mx-auto">
@@ -111,6 +120,17 @@ export default function GameUI() {
   );
 }
 
+/**
+ * A reusable button component for the main bottom navigation bar.
+ * It displays an icon and a label, and shows an active state.
+ *
+ * @param {object} props - The component props.
+ * @param {string} props.label - The text label for the button.
+ * @param {string} props.icon - The emoji icon for the button.
+ * @param {boolean} props.active - Whether the button is currently active.
+ * @param {() => void} props.onClick - The click handler for the button.
+ * @returns {React.ReactElement} The rendered panel button.
+ */
 function PanelButton({ label, icon, active, onClick }: {
   label: string;
   icon: string;
@@ -132,6 +152,13 @@ function PanelButton({ label, icon, active, onClick }: {
   );
 }
 
+/**
+ * Renders the currently active UI panel based on the `activePanel` state.
+ * This acts as a router for the side panels, ensuring only one is visible at a time.
+ *
+ * @param {string} panel - The identifier for the active panel.
+ * @returns {React.ReactElement | null} The React component for the active panel, or null if no panel is active.
+ */
 function renderPanel(panel: string) {
   switch (panel) {
     case 'routes':

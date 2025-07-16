@@ -39,11 +39,24 @@ import { assetService } from '../../lib/supabase/assets';
 import { AssetEffectsService, AreaEffectResult } from '../../app/services/assetEffectsService';
 
 // Store state interface
+
+/**
+ * @interface EmpireState
+ * @description Defines the complete state structure for the game, managed by Zustand.
+ * This serves as the single source of truth for all game data, UI state, and player progress.
+ */
 export interface EmpireState {
-  // Player data
+  /**
+   * @property {Player | null} player - Holds all data related to the current player,
+   * such as cash, level, and experience. Null if no player is loaded.
+   */
   player: Player | null;
   
-  // Assets - legacy structure from empireStore
+  /**
+   * @property {object} assets - Legacy asset structure. Contains all player-owned assets,
+   * categorized by type (ships, planes, etc.).
+   * @deprecated Should be replaced by the `placedAssets` Map for better performance and easier management.
+   */
   assets: {
     ships: Record<string, Ship>;
     planes: Record<string, Plane>;
@@ -52,8 +65,20 @@ export interface EmpireState {
   };
   
   // Asset management - from useAssetStore
+  /**
+   * @property {Map<string, AssetDefinition>} assetDefinitions - A map of all available asset types
+   * that can be purchased in the game, loaded from JSON definitions.
+   */
   assetDefinitions: Map<string, AssetDefinition>;
+  /**
+   * @property {Map<string, PlacedAsset>} placedAssets - A map of all asset instances currently
+   * placed in the game world, keyed by their unique instance ID.
+   */
   placedAssets: Map<string, PlacedAsset>;
+  /**
+   * @property {AssetPreview | null} assetPreview - Holds the state for the "ghost" asset
+   * being previewed before placement. Null when not in placement mode.
+   */
   assetPreview: AssetPreview | null;
   assetToPlace: string | null;
   portNodes: Map<string, PortNode>;
@@ -425,12 +450,22 @@ export const useEmpireStore = create<EmpireState & EmpireActions>()(
           }),
           
           // Asset management actions - from useAssetStore
+          /**
+           * Loads all asset definitions from JSON files into the store.
+           * This populates the list of available assets for purchase.
+           * @param {AssetDefinition[]} definitions - An array of asset definitions to load.
+           */
           loadAssetDefinitions: (definitions) => set((state) => {
             const defMap = new Map<string, AssetDefinition>();
             definitions.forEach(def => defMap.set(def.id, def));
             state.assetDefinitions = defMap;
           }),
           
+          /**
+           * Sets the port nodes available on the game map.
+           * These are used for route creation and asset placement snapping.
+           * @param {PortNode[]} ports - An array of port node objects.
+           */
           setPortNodes: (ports) => set((state) => {
             const portMap = new Map<string, PortNode>();
             ports.forEach(port => portMap.set(port.id, port));
@@ -528,6 +563,12 @@ export const useEmpireStore = create<EmpireState & EmpireActions>()(
             state.assetPreview = null;
           }),
           
+          /**
+           * Finalizes the placement of an asset currently in preview mode.
+           * This action will deduct cash from the player, persist the asset to the database,
+           * and add it to the `placedAssets` map in the local state.
+           * @returns {Promise<{success: boolean; error?: string}>} An object indicating the result of the placement.
+           */
           placeAsset: async () => {
             const state = get();
             const preview = state.assetPreview;

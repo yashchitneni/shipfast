@@ -183,3 +183,53 @@ This section explains how the game visually communicates the dynamic state of th
 * **Profit & Loss Statements:** The Main Dashboard will contain detailed financial reports, breaking down income and expenses by category (shipping, salaries, interest payments).  
 * **Data Tooltips:** Hovering over almost any item—a ship, a port, a market graph—will bring up a detailed tooltip with relevant metrics and data points. For example, hovering over a port will show its top 3 demanded goods and current waiting times.  
 * **Heatmaps (Advanced Feature):** An overlay option on the main map could display global "heatmaps" for different metrics, such as "Profitability," "Risk," or "Demand," giving players a powerful strategic overview of the entire world.
+
+### **6\. UI Implementation Plan**
+
+This section outlines the immediate, actionable steps to build the core user interface, addressing the current gap between the backend systems and the player's ability to interact with them.
+
+#### **Step 1: Build the Core Game HUD**
+
+*   **Objective:** Create the main, persistent UI that frames the game world.
+*   **Component:** `GameHUD.tsx`
+*   **Sub-components:**
+    *   **`TopBar.tsx`**:
+        *   **Displays:** Player name, cash, and net worth.
+        *   **Data Source:** Hook into `usePlayer()` and `usePlayerCash()` from `useEmpireSelectors`.
+        *   **Functionality:** Game time and speed controls (`setPaused`, `setGameSpeed` from `empireStore`).
+    *   **`BottomBar.tsx`**:
+        *   **Displays:** Tabs for "Goods Market," "Asset Market," "Routes," etc.
+        *   **Functionality:** Clicking a tab should set the active panel in the `empireStore` (`setActivePanel`) to show/hide the corresponding dashboard.
+    *   **`Notifications.tsx`**:
+        *   **Displays:** A list of recent, unread notifications.
+        *   **Data Source:** Hook into `useNotifications()` from `useEmpireSelectors`.
+        *   **Functionality:** Display alerts for disasters, market events, and achievements.
+
+#### **Step 2: Implement the Asset Market Panel**
+
+*   **Objective:** Allow players to buy new assets and place them on the map. This connects the UI to the already-completed asset placement system.
+*   **Component:** `AssetMarketPanel.tsx` (to be shown when the "Asset Market" tab is active).
+*   **Functionality:**
+    1.  **Display Assets:** Fetch available assets for purchase from `assetDefinitions` in the `empireStore`.
+    2.  **Initiate Placement:** When a player clicks "Buy" on an asset:
+        *   Call `startAssetPreview(definitionId, mousePosition)` from the `empireStore`. This will put the game into "placement mode."
+        *   The `WorldMapScene` should listen for the `assetPreview` state and draw a temporary sprite at the cursor's position. The `assetBridge` can facilitate this.
+    3.  **Confirm Placement:** When the player clicks on a valid map location:
+        *   Call `placeAsset()` from the `empireStore`. This action contains the core logic to validate the purchase, deduct cash via the Supabase function, and persist the new asset.
+
+#### **Step 3: Implement the Route Management Panel**
+
+*   **Objective:** Enable players to view, create, and manage their trade routes.
+*   **Component:** `RoutePanel.tsx`
+*   **Functionality:**
+    1.  **Display Routes:** List all existing routes from the `empireStore` using the `useRoutes()` selector.
+    2.  **Initiate Creation:** A "Create New Route" button will trigger a route creation mode.
+        *   The UI will prompt the player to "Select an origin port on the map."
+        *   The `WorldMapScene` will detect a click on a port and notify the UI via the `portBridge` or `stateBridge`.
+        *   The UI will then prompt for a "destination port."
+    3.  **Confirm and Assign:** Once the route is defined, a confirmation panel will appear.
+        *   The player can name the route.
+        *   A dropdown will list available, unassigned ships/planes (`useShips`, etc.).
+        *   Clicking "Launch Route" will call `addRoute()` and `assignAssetToRoute()` in the `empireStore`.
+
+By following this plan, you will progressively build a functional and intuitive UI that leverages the powerful backend and state management systems you've already created.

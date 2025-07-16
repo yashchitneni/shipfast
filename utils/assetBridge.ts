@@ -1,7 +1,12 @@
 import { PlacedAsset, AssetDefinition } from '../app/lib/types/assets';
 import { useEmpireStore } from '../src/store/empireStore';
 
-// Bridge between React asset store and Phaser scene
+/**
+ * @class AssetBridge
+ * @description Acts as a communication layer between the Zustand state store (React) and the Phaser game scene.
+ * Its primary responsibility is to keep the visual representation of assets on the game canvas
+ * in sync with the data in the `placedAssets` map in the `empireStore`.
+ */
 export class AssetBridge {
   private scene: Phaser.Scene | null = null;
   private assetSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
@@ -12,7 +17,11 @@ export class AssetBridge {
     this.subscribeToStore();
   }
 
-  // Set the active Phaser scene
+  /**
+   * Sets the active Phaser scene for the bridge to interact with.
+   * Once the scene is set, it performs an initial synchronization of all assets.
+   * @param {Phaser.Scene} scene - The currently active Phaser scene instance.
+   */
   setScene(scene: Phaser.Scene) {
     this.scene = scene;
     // Ensure Maps are properly initialized before syncing
@@ -49,7 +58,15 @@ export class AssetBridge {
     });
   }
 
-  // Sync all assets from store to Phaser
+  /**
+   * @private
+   * @method syncAllAssets
+   * @description This is the core reconciliation logic. It compares the sprites currently rendered
+   * on the canvas (`assetSprites`) with the assets in the store (`placedAssets`).
+   * - It removes sprites for assets that no longer exist in the store.
+   * - It adds sprites for new assets found in the store.
+   * - It updates the properties (position, rotation, etc.) of existing sprites.
+   */
   private syncAllAssets() {
     if (!this.scene) return;
 
@@ -174,7 +191,13 @@ export class AssetBridge {
     }
   }
 
-  // Handle asset click
+  /**
+   * @private
+   * @method handleAssetClick
+   * @description Event handler for when a player clicks on an asset sprite in the Phaser scene.
+   * It updates the `selectedAssetId` in the Zustand store, allowing React components to react to the selection.
+   * @param {string} assetId - The unique ID of the clicked asset.
+   */
   private handleAssetClick(assetId: string) {
     console.log('Asset clicked:', assetId);
     // Update the empire store with selected asset

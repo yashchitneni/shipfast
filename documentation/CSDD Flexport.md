@@ -10,6 +10,8 @@ This document provides the definitive, expansive logic for the game's core syste
 
 ### **2\. Multiplayer Systems & Real-time Interaction**
 
+**Status: Design Phase (Future Implementation)**
+
 All players inhabit a single, persistent, shared world. The multiplayer experience is designed around a mix of constant indirect competition and punctuated moments of direct, high-stakes interaction.
 
 **a. Shared World State & Indirect Competition**
@@ -33,6 +35,8 @@ All players inhabit a single, persistent, shared world. The multiplayer experien
   5. When the timer expires, the resolveAuction function awards the asset/license/specialist to the winner.
 
 ### **3\. The Four Markets: Expansive Logic**
+
+**Status: Partially Implemented (Goods & Asset Markets)**
 
 **a. Goods Market**
 
@@ -58,6 +62,8 @@ All players inhabit a single, persistent, shared world. The multiplayer experien
 
 **b. Capital Market**
 
+**Status: Design Phase (Future Implementation)**
+
 * **Debt Logic & Credit Rating:** A player's "Credit Rating" (from D to AAA) is calculated based on their debt-to-asset ratio and payment history. A higher rating unlocks larger loans at lower interest rates. Missing a payment lowers the rating.  
 * **Equity Logic:** Valuation \= (NetWorth \* 1.5) \+ (GrowthRate \* 10000). Selling more than 49% of your company triggers a "Hostile Takeover" risk from AI firms or other players.  
 * **Advanced Financial Instruments:**  
@@ -65,6 +71,8 @@ All players inhabit a single, persistent, shared world. The multiplayer experien
   * **Government Subsidies:** If a player heavily invests in "green" technology (e.g., eco-friendly ships), they may become eligible for a government subsidy event, providing a one-time cash grant.
 
 **c. Asset Market**
+
+**Status: Implemented (Phase 1)**
 
 * **Asset Stats:**  
   * Speed, Capacity, FuelEfficiency  
@@ -74,6 +82,8 @@ All players inhabit a single, persistent, shared world. The multiplayer experien
 * **AI Manufacturers:** The AvailableSupply of assets is replenished by several competing AI manufacturers, each with their own specialties (e.g., one builds fast but expensive ships, another builds cheap but unreliable ones). Their production can be disrupted by disasters.
 
 **d. Labor Market**
+
+**Status: Partially Implemented (Schema Only)**
 
 * **Expanded Specialist Roles:**
 
@@ -89,6 +99,8 @@ All players inhabit a single, persistent, shared world. The multiplayer experien
 * **Poaching Mechanic (Multiplayer):** A player can attempt to "poach" a specialist from a rival player by making them a significantly higher salary offer. This triggers a notification to the rival, who has a chance to counter-offer.
 
 ### **4\. Core Gameplay Formulas & Systems**
+
+**Status: Partially Implemented**
 
 **a. Compounding Growth Formula**
 
@@ -111,6 +123,8 @@ All players inhabit a single, persistent, shared world. The multiplayer experien
 | Drought | Agricultural Region | Extended period of low "rainfall" in the simulation. | TotalSupply of agricultural goods is reduced. Prices rise. | Investing in alternative food production technologies. |
 
 ### **5\. Player-Trained AI Companion Logic**
+
+**Status: Partially Implemented (Schema Only)**
 
 * **Training & Learning:** The AI learns from specific data points on its assigned route: profit\_per\_day, time\_on\_route, disasters\_encountered, cargo\_type.  
 * **AI Levels & Abilities:**  

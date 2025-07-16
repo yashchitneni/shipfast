@@ -2,7 +2,7 @@ import * as Phaser from 'phaser';
 
 // Camera configuration constants
 const CAMERA_CONFIG = {
-  zoomMin: 0.5,
+  zoomMin: 0.2,
   zoomMax: 2.0,
   zoomStep: 0.1,
   panSpeed: 5,

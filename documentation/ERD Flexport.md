@@ -1,138 +1,147 @@
 # **Entity-Relationship Diagram (ERD)**
 
-Version: 1.0  
-Date: July 14, 2025  
+Version: 2.0 (Reflects Full Schema)
+Date: July 15, 2025
 Game: Flexport \- The Video Game
 
 ### **1\. Introduction**
 
-This document provides the logical data model for our game. It illustrates the core entities, their attributes, and the relationships between them. This ERD will serve as the direct blueprint for constructing our tables in the Supabase (PostgreSQL) database. We will use crow's foot notation to define cardinality.
+This document provides the definitive logical data model for the game, updated to reflect all current database migrations. It serves as the direct blueprint for our Supabase (PostgreSQL) database structure.
 
 ### **2\. The Entity-Relationship Diagram**
 
+```mermaid
 erDiagram  
     PLAYER {  
-        UUID user\_id (PK)  
+        UUID user_id (PK)
         string username  
         int cash  
-        int net\_worth  
-        jsonb ai\_companion\_state  
+        int net_worth
+        jsonb ai_companion_state
     }
 
     ASSET {  
-        UUID asset\_id (PK)  
-        UUID owner\_id (FK)  
-        string asset\_type  
-        string custom\_name  
+        UUID asset_id (PK)
+        UUID owner_id (FK)
+        string asset_type
+        string custom_name
         jsonb stats  
-        int maintenance\_cost  
-        UUID assigned\_route\_id (FK)  
+        int maintenance_cost
+        UUID assigned_route_id (FK)
+        jsonb position
+        int rotation
+        text port_id
+        text status
+        int health
     }
 
     ROUTE {  
-        UUID route\_id (PK)  
-        UUID owner\_id (FK)  
-        string origin\_port\_id  
-        string destination\_port\_id  
-        jsonb performance\_data  
+        UUID route_id (PK)
+        UUID owner_id (FK)
+        string origin_port_id
+        string destination_port_id
+        jsonb performance_data
     }
 
     SPECIALIST {  
-        UUID specialist\_id (PK)  
-        string specialist\_type  
-        jsonb effect\_bonuses  
-        int base\_salary  
+        UUID specialist_id (PK)
+        string specialist_type
+        jsonb effect_bonuses
+        int base_salary
     }
 
-    PLAYER\_SPECIALISTS {  
-        UUID player\_id (FK)  
-        UUID specialist\_id (FK)  
-        date hired\_date  
+    PLAYER_SPECIALISTS {
+        UUID player_id (FK)
+        UUID specialist_id (FK)
+        date hired_date
     }
 
-    WORLD\_STATE {  
-        string world\_id (PK)  
-        jsonb market\_conditions  
-        jsonb active\_disasters  
+    WORLD_STATE {
+        string world_id (PK)
+        jsonb market_conditions
+        jsonb active_disasters
     }
 
     AUCTION {  
-        UUID auction\_id (PK)  
-        string opportunity\_type  
-        jsonb opportunity\_details  
-        int current\_bid  
-        UUID highest\_bidder\_id (FK)  
-        timestamp end\_time  
+        UUID auction_id (PK)
+        string opportunity_type
+        jsonb opportunity_details
+        int current_bid
+        UUID highest_bidder_id (FK)
+        timestamp end_time
     }
 
-    PLAYER ||--o{ ASSET : owns  
-    PLAYER ||--o{ ROUTE : creates  
-    PLAYER ||--o{ PLAYER\_SPECIALISTS : hires  
-    PLAYER ||--o{ AUCTION : bids\_on
+    MARKET_ITEMS {
+        UUID id (PK)
+        string name
+        string type
+        string category
+        decimal base_price
+        decimal current_price
+        int supply
+        int demand
+    }
 
-    ASSET }o--|| ROUTE : is\_assigned\_to
+    PRICE_HISTORY {
+        UUID id (PK)
+        UUID item_id (FK)
+        decimal price
+        timestamp timestamp
+    }
 
-    SPECIALIST ||--o{ PLAYER\_SPECIALISTS : is\_hired\_by
+    TRANSACTIONS {
+        UUID id (PK)
+        UUID item_id (FK)
+        string type
+        int quantity
+        decimal total
+        UUID player_id (FK)
+    }
 
-### **3\. Entity & Relationship Breakdown**
+    AI_COMPANIONS {
+        UUID id (PK)
+        UUID user_id (FK)
+        string name
+        string level
+        int experience
+    }
 
-This section explains each entity and its role in the game.
+    AI_SUGGESTIONS {
+        UUID id (PK)
+        UUID companion_id (FK)
+        string type
+        string title
+        string description
+    }
 
-**a. PLAYER Entity**
+    PLAYER ||--o{ ASSET : owns
+    PLAYER ||--o{ ROUTE : creates
+    PLAYER ||--o{ PLAYER_SPECIALISTS : hires
+    PLAYER ||--o{ AUCTION : bids_on
+    PLAYER ||--o{ TRANSACTIONS : performs
+    PLAYER ||--|| AI_COMPANIONS : has
 
-* **Description:** Represents the player's core empire. This is the central entity from which most others are connected.  
-* **Attributes:**  
-  * user\_id (PK): The unique identifier for the player, provided by Supabase Auth.  
-  * username: The player's display name.  
-  * cash, net\_worth: Core financial metrics.  
-  * ai\_companion\_state: A JSON object storing the AI's level, RiskTolerance, and other stats.  
-* **Relationships:**  
-  * A PLAYER **owns** one-to-many ASSETs.  
-  * A PLAYER **creates** one-to-many ROUTEs.  
-  * A PLAYER **hires** specialists through the PLAYER\_SPECIALISTS junction table.
+    ASSET }o--|| ROUTE : is_assigned_to
 
-**b. ASSET Entity**
+    SPECIALIST ||--o{ PLAYER_SPECIALISTS : is_hired_by
 
-* **Description:** Represents a tangible, income-generating asset owned by the player, primarily ships and warehouses.  
-* **Attributes:**  
-  * asset\_id (PK): Unique ID for the asset.  
-  * owner\_id (FK): Links back to the PLAYER who owns it.  
-  * asset\_type: e.g., "Container Ship," "Warehouse."  
-  * stats: A JSON object holding key performance indicators like { "speed": 1.2, "capacity": 100, "disaster\_resilience": 0.1 }.  
-  * assigned\_route\_id (FK): If the asset is a ship, this links to the ROUTE it is currently running.  
-* **Relationships:**  
-  * An ASSET is **owned by** one PLAYER.  
-  * An ASSET (ship) **is assigned to** one ROUTE.
+    MARKET_ITEMS ||--o{ PRICE_HISTORY : has_history
+    MARKET_ITEMS ||--o{ TRANSACTIONS : is_transacted
 
-**c. ROUTE Entity**
+    AI_COMPANIONS ||--o{ AI_SUGGESTIONS : gives
+```
 
-* **Description:** Represents a defined trade route between two points on the map.  
-* **Attributes:**  
-  * route\_id (PK): Unique ID for the route.  
-  * owner\_id (FK): Links to the PLAYER who created it.  
-  * origin\_port\_id, destination\_port\_id: Identifiers for the start and end points.  
-  * performance\_data: A JSON object storing data like { "profit\_per\_day": 5000, "disasters\_encountered": 2 } used for the AI Companion's training.
+### **3\. Entity Breakdown**
 
-**d. SPECIALIST & PLAYER\_SPECIALISTS Entities**
-
-* **Description:** This demonstrates how we resolve a Many-to-Many relationship. A PLAYER can hire many SPECIALISTs, and a type of SPECIALIST can be hired by many players. The PLAYER\_SPECIALISTS table connects them.  
-* **PLAYER\_SPECIALISTS (Junction Table):**  
-  * This table simply links a player\_id to a specialist\_id and records the date they were hired. This allows us to query all the specialists a single player has hired.
-
-**e. WORLD\_STATE Entity**
-
-* **Description:** A singleton table (will only ever have one row) that holds the current state of the shared global economy.  
-* **Attributes:**  
-  * market\_conditions: A JSON object containing the current prices, supply, and demand for all goods.  
-  * active\_disasters: A JSON array listing all currently active disasters and their affected regions.  
-* **Why it's important:** This is the data that is updated by our simulateEconomy Edge Function and pushed to all players via Supabase Realtime to ensure a consistent world.
-
-**f. AUCTION Entity**
-
-* **Description:** Represents a live, competitive event.  
-* **Attributes:**  
-  * opportunity\_type: e.g., "Unique Asset," "Exclusive License."  
-  * opportunity\_details: A JSON object with the specifics of what's being auctioned.  
-  * highest\_bidder\_id (FK): Links to the PLAYER who is currently winning.  
-* **Relationships:**  
-  * A PLAYER **bids on** an AUCTION. This relationship is managed in real-time by our Edge Functions.
+*   **PLAYER:** The central player entity. Linked to `auth.users`.
+*   **ASSET:** All player-owned assets (ships, planes, etc.). Now includes columns for on-map placement (`position`, `rotation`, `status`).
+*   **ROUTE:** Player-created trade routes.
+*   **SPECIALIST / PLAYER_SPECIALISTS:** Defines available specialists and tracks which players have hired them.
+*   **WORLD_STATE:** Singleton table holding the global economic state.
+*   **AUCTION:** Represents live bidding events for unique items.
+*   **MARKET_ITEMS:** Defines all tradable goods, their properties, and current state.
+*   **PRICE_HISTORY:** Tracks historical price data for market analysis.
+*   **TRANSACTIONS:** Logs all player buy/sell transactions in the market.
+*   **AI_COMPANIONS:** Stores the state and progress of each player's AI companion.
+*   **AI_SUGGESTIONS:** Logs suggestions generated by the AI for the player.
+*   *(Other AI tables like `ai_route_patterns` exist but are omitted for diagram clarity).*

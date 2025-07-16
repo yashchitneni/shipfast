@@ -1,3 +1,77 @@
 ---
 alwaysApply: true
 ---
+
+## File Placement Rules for Flexport Game
+
+These rules define where new files should be created to maintain a clean and logical project structure.
+
+### React Components
+
+1.  **High-Level UI Panels & Dashboards:**
+    -   **Description:** Major UI views like the Market screen, Finance dashboard, or Route Manager.
+    -   **Location:** `/app/components/<feature_name>/`
+    -   **Example:** A new "Logistics" panel would go in `/app/components/logistics/LogisticsPanel.tsx`.
+
+2.  **Real-time Game HUD Components:**
+    -   **Description:** Components that are part of the always-on-screen game overlay and are tightly coupled to the Phaser canvas.
+    -   **Location:** `/src/components/`
+    -   **Example:** A new "Selected Asset" info box would go in `/src/components/hud/SelectedAsset.tsx`.
+
+3.  **Top-Level "Glue" Components:**
+    -   **Description:** Components that connect the Next.js application shell with the Phaser game. This folder should rarely be modified.
+    -   **Location:** `/components/`
+    -   **Example:** `GameUI.tsx` and `GameCanvas.tsx`.
+
+4.  **Shared, Reusable UI Primitives:**
+    -   **Description:** Generic, reusable components like Buttons, Modals, or Cards.
+    -   **Location:** `/app/components/ui/`
+    -   **Example:** A new `ToggleSwitch.tsx` component.
+
+### State Management (Zustand)
+
+1.  **Core Game State:**
+    -   **Description:** The central store for all core game data (player, assets, routes, etc.).
+    -   **Location:** `/src/store/empireStore.ts`
+
+2.  **Feature-Specific Stores:**
+    -   **Description:** Stores for specific, complex UI features that are part of the Next.js app.
+    -   **Location:** `/app/store/`
+    -   **Example:** `useMarketStore.ts`, `useRouteStore.ts`.
+
+### Types, Utilities, and Hooks
+
+1.  **TypeScript Definitions:**
+    -   **Description:** All shared type and interface definitions for the entire application.
+    -   **Location:** `/types/`
+    -   **Example:** A new `Vehicle` interface would go in `/types/game.ts` or a new `types/vehicles.ts`.
+
+2.  **Utility Functions & Bridges:**
+    -   **Description:** All shared utility functions (formatters, calculations) and bridges (React-Phaser communication).
+    -   **Location:** `/utils/`
+    -   **Example:** A new `math.ts` utility file goes in `/utils/math.ts`.
+
+3.  **React Hooks:**
+    -   **Description:** All shared, reusable React hooks.
+    -   **Location:** `/hooks/`
+    -   **Example:** A new `useViewportSize.ts` hook.
+
+### Game Engine (Phaser)
+
+1.  **Phaser Scenes:**
+    -   **Description:** All Phaser scenes.
+    -   **Location:** `/scenes/`
+    -   **Example:** A new `PortScene.ts`.
+
+### Backend (Supabase)
+
+1.  **Database Migrations:**
+    -   **Location:** `/supabase/migrations/`
+
+2.  **Edge Functions:**
+    -   **Location:** `/supabase/functions/<function_name>/`
+
+3.  **Client-Side Supabase Logic:**
+    -   **Description:** Service files for interacting with Supabase tables.
+    -   **Location:** `/lib/supabase/`
+    -   **Example:** A new service for `events` would be `/lib/supabase/events.ts`.
