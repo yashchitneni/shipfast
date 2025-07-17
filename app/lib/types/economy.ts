@@ -114,3 +114,44 @@ export interface CompoundingGrowth {
   timeDays: number;
   nextProfit: number;
 }
+
+// Port Economics Types
+export interface PortGoodData {
+  goodId: string;
+  localPrice: number;
+  supply: number;
+  demand: number;
+  inventory: number;
+  trend: 'rising' | 'falling' | 'stable';
+  modifier: number;
+}
+
+export interface PortEconomicData {
+  portId: string;
+  portName: string;
+  region: string;
+  capacity: number;
+  efficiency: number;
+  currentUtilization: number;
+  goods: PortGoodData[];
+  lastUpdated: number;
+}
+
+export interface TradeOpportunity {
+  id: string;
+  goodId: string;
+  goodName: string;
+  originPortId: string;
+  originPortName: string;
+  destinationPortId: string;
+  destinationPortName: string;
+  originPrice: number;
+  destinationPrice: number;
+  potentialProfit: number;
+  profitMargin: number;
+  distance: number;
+  estimatedTime: number;
+  profitPerHour: number;
+  riskLevel: number;
+  lastUpdated: number;
+}

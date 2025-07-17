@@ -1,0 +1,243 @@
+{
+  "portEconomics": {
+    "globalModifiers": {
+      "baseSupplyGrowth": 0.02,
+      "baseDemandVolatility": 0.15,
+      "priceElasticity": 0.7,
+      "transportCostFactor": 0.1,
+      "distanceDecayFactor": 0.8
+    },
+    "portTypeModifiers": {
+      "mega": {
+        "supplyMultiplier": 1.5,
+        "demandMultiplier": 1.4,
+        "priceStability": 0.8,
+        "tradeVolumeBonus": 0.3
+      },
+      "large": {
+        "supplyMultiplier": 1.2,
+        "demandMultiplier": 1.2,
+        "priceStability": 0.7,
+        "tradeVolumeBonus": 0.2
+      },
+      "medium": {
+        "supplyMultiplier": 1.0,
+        "demandMultiplier": 1.0,
+        "priceStability": 0.6,
+        "tradeVolumeBonus": 0.1
+      },
+      "small": {
+        "supplyMultiplier": 0.8,
+        "demandMultiplier": 0.9,
+        "priceStability": 0.5,
+        "tradeVolumeBonus": 0
+      }
+    },
+    "regionalModifiers": {
+      "asia_pacific": {
+        "electronics": { "supply": 1.4, "demand": 0.8 },
+        "machinery": { "supply": 1.3, "demand": 0.9 },
+        "textiles": { "supply": 1.5, "demand": 0.7 },
+        "crude_petroleum": { "supply": 0.6, "demand": 1.4 },
+        "automobiles": { "supply": 1.2, "demand": 1.0 }
+      },
+      "europe": {
+        "chemicals": { "supply": 1.3, "demand": 1.0 },
+        "automobiles": { "supply": 1.2, "demand": 1.1 },
+        "machinery": { "supply": 1.2, "demand": 1.0 },
+        "pharmaceuticals": { "supply": 1.4, "demand": 0.9 },
+        "wine": { "supply": 1.5, "demand": 0.8 }
+      },
+      "north_america": {
+        "soybeans": { "supply": 1.4, "demand": 0.8 },
+        "grains": { "supply": 1.3, "demand": 0.9 },
+        "crude_petroleum": { "supply": 1.1, "demand": 1.2 },
+        "automobiles": { "supply": 1.0, "demand": 1.3 },
+        "electronics": { "supply": 0.7, "demand": 1.4 }
+      },
+      "middle_east": {
+        "crude_petroleum": { "supply": 1.6, "demand": 0.6 },
+        "refined_petroleum": { "supply": 1.4, "demand": 0.8 },
+        "aluminum": { "supply": 1.3, "demand": 0.9 },
+        "chemicals": { "supply": 1.1, "demand": 1.1 },
+        "electronics": { "supply": 0.6, "demand": 1.3 }
+      },
+      "africa": {
+        "iron_ore": { "supply": 1.3, "demand": 0.7 },
+        "copper": { "supply": 1.4, "demand": 0.6 },
+        "coffee": { "supply": 1.5, "demand": 0.8 },
+        "phosphates": { "supply": 1.4, "demand": 0.7 },
+        "machinery": { "supply": 0.6, "demand": 1.3 }
+      },
+      "south_america": {
+        "soybeans": { "supply": 1.4, "demand": 0.8 },
+        "iron_ore": { "supply": 1.3, "demand": 0.7 },
+        "copper": { "supply": 1.5, "demand": 0.6 },
+        "coffee": { "supply": 1.4, "demand": 0.9 },
+        "automobiles": { "supply": 0.9, "demand": 1.2 }
+      },
+      "southeast_asia": {
+        "palm_oil": { "supply": 1.6, "demand": 0.7 },
+        "rubber": { "supply": 1.5, "demand": 0.8 },
+        "electronics": { "supply": 1.2, "demand": 1.0 },
+        "rice": { "supply": 1.4, "demand": 0.9 },
+        "timber": { "supply": 1.3, "demand": 0.8 }
+      }
+    },
+    "tradeRouteModifiers": {
+      "transpacific": {
+        "description": "Asia to Americas trade",
+        "goods": {
+          "electronics": { "volumeBonus": 0.3, "priceModifier": 0.95 },
+          "machinery": { "volumeBonus": 0.2, "priceModifier": 0.97 },
+          "textiles": { "volumeBonus": 0.25, "priceModifier": 0.96 }
+        }
+      },
+      "transatlantic": {
+        "description": "Europe to Americas trade",
+        "goods": {
+          "automobiles": { "volumeBonus": 0.2, "priceModifier": 0.98 },
+          "chemicals": { "volumeBonus": 0.15, "priceModifier": 0.97 },
+          "machinery": { "volumeBonus": 0.18, "priceModifier": 0.96 }
+        }
+      },
+      "asia_europe": {
+        "description": "Asia to Europe trade via Suez",
+        "goods": {
+          "electronics": { "volumeBonus": 0.25, "priceModifier": 0.96 },
+          "textiles": { "volumeBonus": 0.2, "priceModifier": 0.95 },
+          "furniture": { "volumeBonus": 0.15, "priceModifier": 0.97 }
+        }
+      },
+      "intra_asia": {
+        "description": "Trade within Asia Pacific",
+        "goods": {
+          "integrated_circuits": { "volumeBonus": 0.3, "priceModifier": 0.93 },
+          "steel": { "volumeBonus": 0.2, "priceModifier": 0.95 },
+          "chemicals": { "volumeBonus": 0.15, "priceModifier": 0.96 }
+        }
+      }
+    },
+    "seasonalEffects": {
+      "q1": {
+        "electronics": 0.8,
+        "toys": 0.6,
+        "textiles": 1.1,
+        "heating_fuel": 1.3
+      },
+      "q2": {
+        "construction_materials": 1.2,
+        "automobiles": 1.1,
+        "furniture": 1.15,
+        "agricultural": 0.9
+      },
+      "q3": {
+        "agricultural": 1.2,
+        "tourism_goods": 1.3,
+        "construction_materials": 1.15,
+        "heating_fuel": 0.7
+      },
+      "q4": {
+        "electronics": 1.3,
+        "toys": 1.5,
+        "luxury_goods": 1.4,
+        "wine": 1.3
+      }
+    },
+    "disasterEffects": {
+      "storm": {
+        "portClosureProbability": 0.3,
+        "capacityReduction": 0.5,
+        "priceSpike": 1.5,
+        "affectedGoods": ["perishables", "electronics"],
+        "duration": 7
+      },
+      "piracy": {
+        "routeRiskIncrease": 0.2,
+        "insuranceCostMultiplier": 1.5,
+        "priceIncrease": 1.1,
+        "affectedGoods": ["luxury", "electronics"],
+        "duration": 30
+      },
+      "strike": {
+        "portEfficiencyReduction": 0.7,
+        "capacityReduction": 0.8,
+        "priceIncrease": 1.2,
+        "affectedGoods": ["all"],
+        "duration": 14
+      },
+      "pandemic": {
+        "globalDemandShift": 0.8,
+        "supplyChainDisruption": 0.6,
+        "priceVolatilityIncrease": 2.0,
+        "affectedGoods": ["pharmaceuticals", "medical_equipment"],
+        "duration": 180
+      }
+    },
+    "economicEvents": {
+      "boom": {
+        "demandMultiplier": 1.3,
+        "priceStability": 0.8,
+        "tradeVolumeIncrease": 1.4,
+        "creditAvailability": 1.5
+      },
+      "recession": {
+        "demandMultiplier": 0.7,
+        "priceVolatility": 1.5,
+        "tradeVolumeDecrease": 0.8,
+        "creditAvailability": 0.6
+      },
+      "trade_war": {
+        "tariffIncrease": 1.25,
+        "tradeVolumeDecrease": 0.85,
+        "priceIncrease": 1.15,
+        "affectedRoutes": ["transpacific", "asia_europe"]
+      },
+      "oil_shock": {
+        "fuelCostMultiplier": 2.0,
+        "transportCostIncrease": 1.5,
+        "demandDecrease": 0.9,
+        "affectedGoods": ["crude_petroleum", "refined_petroleum"]
+      }
+    },
+    "portCompetition": {
+      "factors": {
+        "efficiency": 0.3,
+        "location": 0.25,
+        "infrastructure": 0.2,
+        "cost": 0.15,
+        "connections": 0.1
+      },
+      "competitionRadius": 500,
+      "marketShareCalculation": "relative_attractiveness"
+    },
+    "priceFormula": {
+      "base": "basePrice * (1 + supplyDemandModifier)",
+      "supplyDemandModifier": "(demand - supply) / (demand + supply) * priceElasticity",
+      "transportCost": "distance * transportCostFactor * fuelPrice",
+      "finalPrice": "base + transportCost + portFees + insurance"
+    }
+  },
+  "portRegionMapping": {
+    "port-shanghai": "asia_pacific",
+    "port-singapore": "southeast_asia",
+    "port-ningbo-zhoushan": "asia_pacific",
+    "port-shenzhen": "asia_pacific",
+    "port-qingdao": "asia_pacific",
+    "port-guangzhou": "asia_pacific",
+    "port-busan": "asia_pacific",
+    "port-tianjin": "asia_pacific",
+    "port-jebel-ali": "middle_east",
+    "port-klang": "southeast_asia",
+    "port-rotterdam": "europe",
+    "port-hong-kong": "asia_pacific",
+    "port-antwerp-bruges": "europe",
+    "port-tanjung-pelepas": "southeast_asia",
+    "port-xiamen": "asia_pacific",
+    "port-los-angeles": "north_america",
+    "port-tanger-med": "africa",
+    "port-long-beach": "north_america",
+    "port-laem-chabang": "southeast_asia",
+    "port-kaohsiung": "asia_pacific"
+  }
+}

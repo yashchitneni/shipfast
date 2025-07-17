@@ -1,0 +1,585 @@
+{
+  "marketGoods": [
+    {
+      "id": "crude_petroleum",
+      "name": "Crude Petroleum",
+      "category": "RAW_MATERIALS",
+      "type": "GOODS",
+      "unit": "barrel",
+      "basePrice": 80,
+      "volatility": 0.3,
+      "weight": 136,
+      "perishable": false,
+      "stackSize": 1000,
+      "description": "Unrefined petroleum used for fuel and chemical production",
+      "productionCostModifier": 0.6,
+      "demandFactors": ["industrial_growth", "transportation", "energy_needs"],
+      "seasonalModifiers": {
+        "winter": 1.2,
+        "summer": 0.9
+      }
+    },
+    {
+      "id": "refined_petroleum",
+      "name": "Refined Petroleum",
+      "category": "MANUFACTURED",
+      "type": "GOODS",
+      "unit": "barrel",
+      "basePrice": 120,
+      "volatility": 0.25,
+      "weight": 136,
+      "perishable": false,
+      "stackSize": 1000,
+      "description": "Processed fuel products including gasoline and diesel",
+      "productionCostModifier": 0.8,
+      "demandFactors": ["transportation", "aviation", "shipping"],
+      "seasonalModifiers": {
+        "winter": 1.15,
+        "summer": 1.1
+      }
+    },
+    {
+      "id": "electronics",
+      "name": "Electronics",
+      "category": "MANUFACTURED",
+      "type": "GOODS",
+      "unit": "container",
+      "basePrice": 50000,
+      "volatility": 0.2,
+      "weight": 10000,
+      "perishable": false,
+      "stackSize": 100,
+      "description": "Consumer electronics including phones, computers, and TVs",
+      "productionCostModifier": 0.7,
+      "demandFactors": ["consumer_spending", "technology_trends", "holiday_season"],
+      "seasonalModifiers": {
+        "q4": 1.3,
+        "q1": 0.8
+      }
+    },
+    {
+      "id": "machinery",
+      "name": "Industrial Machinery",
+      "category": "MANUFACTURED",
+      "type": "CAPITAL",
+      "unit": "unit",
+      "basePrice": 75000,
+      "volatility": 0.15,
+      "weight": 5000,
+      "perishable": false,
+      "stackSize": 20,
+      "description": "Heavy machinery for construction and manufacturing",
+      "productionCostModifier": 0.65,
+      "demandFactors": ["industrial_growth", "infrastructure_projects", "manufacturing"],
+      "seasonalModifiers": {}
+    },
+    {
+      "id": "textiles",
+      "name": "Textiles",
+      "category": "MANUFACTURED",
+      "type": "GOODS",
+      "unit": "bale",
+      "basePrice": 800,
+      "volatility": 0.18,
+      "weight": 200,
+      "perishable": false,
+      "stackSize": 500,
+      "description": "Fabrics and clothing materials",
+      "productionCostModifier": 0.5,
+      "demandFactors": ["fashion_trends", "consumer_spending", "seasonal_demand"],
+      "seasonalModifiers": {
+        "spring": 1.1,
+        "fall": 1.15
+      }
+    },
+    {
+      "id": "automobiles",
+      "name": "Automobiles",
+      "category": "MANUFACTURED",
+      "type": "GOODS",
+      "unit": "vehicle",
+      "basePrice": 25000,
+      "volatility": 0.12,
+      "weight": 1500,
+      "perishable": false,
+      "stackSize": 10,
+      "description": "Passenger vehicles for export",
+      "productionCostModifier": 0.75,
+      "demandFactors": ["consumer_confidence", "fuel_prices", "economic_growth"],
+      "seasonalModifiers": {
+        "spring": 1.1,
+        "summer": 1.05
+      }
+    },
+    {
+      "id": "iron_ore",
+      "name": "Iron Ore",
+      "category": "RAW_MATERIALS",
+      "type": "GOODS",
+      "unit": "metric_ton",
+      "basePrice": 120,
+      "volatility": 0.22,
+      "weight": 1000,
+      "perishable": false,
+      "stackSize": 5000,
+      "description": "Raw iron ore for steel production",
+      "productionCostModifier": 0.4,
+      "demandFactors": ["construction", "infrastructure", "manufacturing"],
+      "seasonalModifiers": {}
+    },
+    {
+      "id": "steel",
+      "name": "Steel",
+      "category": "MANUFACTURED",
+      "type": "GOODS",
+      "unit": "metric_ton",
+      "basePrice": 800,
+      "volatility": 0.18,
+      "weight": 1000,
+      "perishable": false,
+      "stackSize": 1000,
+      "description": "Processed steel for construction and manufacturing",
+      "productionCostModifier": 0.7,
+      "demandFactors": ["construction", "shipbuilding", "automotive"],
+      "seasonalModifiers": {
+        "spring": 1.05,
+        "summer": 1.1
+      }
+    },
+    {
+      "id": "coal",
+      "name": "Coal",
+      "category": "RAW_MATERIALS",
+      "type": "GOODS",
+      "unit": "metric_ton",
+      "basePrice": 100,
+      "volatility": 0.25,
+      "weight": 1000,
+      "perishable": false,
+      "stackSize": 10000,
+      "description": "Coal for energy and steel production",
+      "productionCostModifier": 0.35,
+      "demandFactors": ["energy_demand", "steel_production", "winter_heating"],
+      "seasonalModifiers": {
+        "winter": 1.3,
+        "summer": 0.8
+      }
+    },
+    {
+      "id": "chemicals",
+      "name": "Chemicals",
+      "category": "MANUFACTURED",
+      "type": "GOODS",
+      "unit": "barrel",
+      "basePrice": 1500,
+      "volatility": 0.2,
+      "weight": 200,
+      "perishable": false,
+      "stackSize": 200,
+      "description": "Industrial chemicals and compounds",
+      "productionCostModifier": 0.6,
+      "demandFactors": ["industrial_production", "agriculture", "pharmaceuticals"],
+      "seasonalModifiers": {}
+    },
+    {
+      "id": "plastics",
+      "name": "Plastics",
+      "category": "MANUFACTURED",
+      "type": "GOODS",
+      "unit": "metric_ton",
+      "basePrice": 1200,
+      "volatility": 0.16,
+      "weight": 1000,
+      "perishable": false,
+      "stackSize": 500,
+      "description": "Plastic resins and products",
+      "productionCostModifier": 0.65,
+      "demandFactors": ["packaging", "consumer_goods", "construction"],
+      "seasonalModifiers": {}
+    },
+    {
+      "id": "soybeans",
+      "name": "Soybeans",
+      "category": "RAW_MATERIALS",
+      "type": "GOODS",
+      "unit": "bushel",
+      "basePrice": 14,
+      "volatility": 0.28,
+      "weight": 27.2,
+      "perishable": true,
+      "spoilageTime": 180,
+      "stackSize": 10000,
+      "description": "Agricultural commodity for food and animal feed",
+      "productionCostModifier": 0.45,
+      "demandFactors": ["livestock_production", "food_processing", "biofuels"],
+      "seasonalModifiers": {
+        "harvest": 0.8,
+        "planting": 1.2
+      }
+    },
+    {
+      "id": "grains",
+      "name": "Grains",
+      "category": "RAW_MATERIALS",
+      "type": "GOODS",
+      "unit": "bushel",
+      "basePrice": 8,
+      "volatility": 0.3,
+      "weight": 27.2,
+      "perishable": true,
+      "spoilageTime": 365,
+      "stackSize": 10000,
+      "description": "Wheat, corn, and other cereal grains",
+      "productionCostModifier": 0.4,
+      "demandFactors": ["population_growth", "food_security", "livestock_feed"],
+      "seasonalModifiers": {
+        "harvest": 0.7,
+        "winter": 1.1
+      }
+    },
+    {
+      "id": "palm_oil",
+      "name": "Palm Oil",
+      "category": "RAW_MATERIALS",
+      "type": "GOODS",
+      "unit": "metric_ton",
+      "basePrice": 800,
+      "volatility": 0.24,
+      "weight": 1000,
+      "perishable": false,
+      "stackSize": 1000,
+      "description": "Vegetable oil for food and industrial uses",
+      "productionCostModifier": 0.5,
+      "demandFactors": ["food_industry", "cosmetics", "biofuels"],
+      "seasonalModifiers": {}
+    },
+    {
+      "id": "rubber",
+      "name": "Natural Rubber",
+      "category": "RAW_MATERIALS",
+      "type": "GOODS",
+      "unit": "metric_ton",
+      "basePrice": 1800,
+      "volatility": 0.22,
+      "weight": 1000,
+      "perishable": false,
+      "stackSize": 500,
+      "description": "Natural rubber for tires and industrial products",
+      "productionCostModifier": 0.55,
+      "demandFactors": ["automotive", "industrial_goods", "medical_supplies"],
+      "seasonalModifiers": {}
+    },
+    {
+      "id": "copper",
+      "name": "Copper",
+      "category": "RAW_MATERIALS",
+      "type": "GOODS",
+      "unit": "metric_ton",
+      "basePrice": 9000,
+      "volatility": 0.26,
+      "weight": 1000,
+      "perishable": false,
+      "stackSize": 500,
+      "description": "Copper metal for electronics and construction",
+      "productionCostModifier": 0.6,
+      "demandFactors": ["electronics", "construction", "renewable_energy"],
+      "seasonalModifiers": {}
+    },
+    {
+      "id": "integrated_circuits",
+      "name": "Integrated Circuits",
+      "category": "MANUFACTURED",
+      "type": "GOODS",
+      "unit": "box",
+      "basePrice": 5000,
+      "volatility": 0.15,
+      "weight": 10,
+      "perishable": false,
+      "stackSize": 1000,
+      "description": "Computer chips and semiconductors",
+      "productionCostModifier": 0.8,
+      "demandFactors": ["technology", "automotive", "consumer_electronics"],
+      "seasonalModifiers": {}
+    },
+    {
+      "id": "furniture",
+      "name": "Furniture",
+      "category": "MANUFACTURED",
+      "type": "GOODS",
+      "unit": "container",
+      "basePrice": 15000,
+      "volatility": 0.14,
+      "weight": 8000,
+      "perishable": false,
+      "stackSize": 50,
+      "description": "Home and office furniture",
+      "productionCostModifier": 0.55,
+      "demandFactors": ["housing_market", "consumer_spending", "office_construction"],
+      "seasonalModifiers": {
+        "spring": 1.15,
+        "fall": 1.1
+      }
+    },
+    {
+      "id": "pharmaceuticals",
+      "name": "Pharmaceuticals",
+      "category": "MANUFACTURED",
+      "type": "GOODS",
+      "unit": "pallet",
+      "basePrice": 50000,
+      "volatility": 0.1,
+      "weight": 500,
+      "perishable": true,
+      "spoilageTime": 730,
+      "stackSize": 100,
+      "description": "Medical drugs and vaccines",
+      "productionCostModifier": 0.85,
+      "demandFactors": ["healthcare", "population_aging", "disease_outbreaks"],
+      "seasonalModifiers": {
+        "winter": 1.1
+      }
+    },
+    {
+      "id": "lng",
+      "name": "Liquefied Natural Gas",
+      "category": "RAW_MATERIALS",
+      "type": "GOODS",
+      "unit": "cubic_meter",
+      "basePrice": 15,
+      "volatility": 0.35,
+      "weight": 450,
+      "perishable": false,
+      "stackSize": 10000,
+      "description": "Natural gas in liquid form for transport",
+      "productionCostModifier": 0.65,
+      "demandFactors": ["energy_demand", "industrial_use", "heating"],
+      "seasonalModifiers": {
+        "winter": 1.4,
+        "summer": 0.7
+      }
+    },
+    {
+      "id": "toys",
+      "name": "Toys",
+      "category": "MANUFACTURED",
+      "type": "GOODS",
+      "unit": "container",
+      "basePrice": 20000,
+      "volatility": 0.2,
+      "weight": 5000,
+      "perishable": false,
+      "stackSize": 100,
+      "description": "Children's toys and games",
+      "productionCostModifier": 0.5,
+      "demandFactors": ["consumer_spending", "demographics", "holidays"],
+      "seasonalModifiers": {
+        "q4": 1.5,
+        "q1": 0.6
+      }
+    },
+    {
+      "id": "aluminum",
+      "name": "Aluminum",
+      "category": "MANUFACTURED",
+      "type": "GOODS",
+      "unit": "metric_ton",
+      "basePrice": 2500,
+      "volatility": 0.2,
+      "weight": 1000,
+      "perishable": false,
+      "stackSize": 1000,
+      "description": "Aluminum metal for construction and packaging",
+      "productionCostModifier": 0.7,
+      "demandFactors": ["construction", "automotive", "packaging"],
+      "seasonalModifiers": {}
+    },
+    {
+      "id": "coffee",
+      "name": "Coffee",
+      "category": "LUXURY",
+      "type": "GOODS",
+      "unit": "bag",
+      "basePrice": 150,
+      "volatility": 0.32,
+      "weight": 60,
+      "perishable": true,
+      "spoilageTime": 365,
+      "stackSize": 1000,
+      "description": "Coffee beans for export",
+      "productionCostModifier": 0.45,
+      "demandFactors": ["consumer_habits", "cafe_culture", "economic_growth"],
+      "seasonalModifiers": {
+        "winter": 1.1
+      }
+    },
+    {
+      "id": "seafood",
+      "name": "Seafood",
+      "category": "PERISHABLE",
+      "type": "GOODS",
+      "unit": "metric_ton",
+      "basePrice": 3000,
+      "volatility": 0.4,
+      "weight": 1000,
+      "perishable": true,
+      "spoilageTime": 7,
+      "stackSize": 100,
+      "description": "Fresh and frozen fish products",
+      "productionCostModifier": 0.6,
+      "demandFactors": ["dietary_trends", "tourism", "population_growth"],
+      "seasonalModifiers": {
+        "summer": 1.2
+      }
+    },
+    {
+      "id": "timber",
+      "name": "Timber",
+      "category": "RAW_MATERIALS",
+      "type": "GOODS",
+      "unit": "cubic_meter",
+      "basePrice": 300,
+      "volatility": 0.18,
+      "weight": 700,
+      "perishable": false,
+      "stackSize": 1000,
+      "description": "Lumber for construction and furniture",
+      "productionCostModifier": 0.4,
+      "demandFactors": ["construction", "furniture_production", "paper_industry"],
+      "seasonalModifiers": {
+        "spring": 1.1,
+        "summer": 1.15
+      }
+    },
+    {
+      "id": "rice",
+      "name": "Rice",
+      "category": "RAW_MATERIALS",
+      "type": "GOODS",
+      "unit": "metric_ton",
+      "basePrice": 400,
+      "volatility": 0.25,
+      "weight": 1000,
+      "perishable": true,
+      "spoilageTime": 730,
+      "stackSize": 5000,
+      "description": "Rice for food consumption",
+      "productionCostModifier": 0.35,
+      "demandFactors": ["population_growth", "food_security", "asian_demand"],
+      "seasonalModifiers": {
+        "harvest": 0.8
+      }
+    },
+    {
+      "id": "cotton",
+      "name": "Cotton",
+      "category": "RAW_MATERIALS",
+      "type": "GOODS",
+      "unit": "bale",
+      "basePrice": 600,
+      "volatility": 0.28,
+      "weight": 220,
+      "perishable": false,
+      "stackSize": 1000,
+      "description": "Raw cotton for textile production",
+      "productionCostModifier": 0.4,
+      "demandFactors": ["textile_industry", "fashion", "global_trade"],
+      "seasonalModifiers": {
+        "harvest": 0.75
+      }
+    },
+    {
+      "id": "wine",
+      "name": "Wine",
+      "category": "LUXURY",
+      "type": "GOODS",
+      "unit": "case",
+      "basePrice": 1200,
+      "volatility": 0.15,
+      "weight": 40,
+      "perishable": false,
+      "stackSize": 500,
+      "description": "Fine wines for export",
+      "productionCostModifier": 0.6,
+      "demandFactors": ["luxury_spending", "tourism", "cultural_events"],
+      "seasonalModifiers": {
+        "holidays": 1.3
+      }
+    },
+    {
+      "id": "cement",
+      "name": "Cement",
+      "category": "MANUFACTURED",
+      "type": "GOODS",
+      "unit": "metric_ton",
+      "basePrice": 100,
+      "volatility": 0.12,
+      "weight": 1000,
+      "perishable": false,
+      "stackSize": 5000,
+      "description": "Cement for construction projects",
+      "productionCostModifier": 0.5,
+      "demandFactors": ["construction", "infrastructure", "urbanization"],
+      "seasonalModifiers": {
+        "spring": 1.1,
+        "summer": 1.2,
+        "winter": 0.8
+      }
+    },
+    {
+      "id": "medical_equipment",
+      "name": "Medical Equipment",
+      "category": "MANUFACTURED",
+      "type": "CAPITAL",
+      "unit": "unit",
+      "basePrice": 100000,
+      "volatility": 0.08,
+      "weight": 500,
+      "perishable": false,
+      "stackSize": 10,
+      "description": "Hospital and medical devices",
+      "productionCostModifier": 0.8,
+      "demandFactors": ["healthcare_spending", "hospital_construction", "aging_population"],
+      "seasonalModifiers": {}
+    }
+  ],
+  "goodCategories": {
+    "RAW_MATERIALS": {
+      "description": "Unprocessed natural resources",
+      "defaultVolatility": 0.25,
+      "priceElasticity": 0.8
+    },
+    "MANUFACTURED": {
+      "description": "Processed and manufactured goods",
+      "defaultVolatility": 0.15,
+      "priceElasticity": 0.6
+    },
+    "LUXURY": {
+      "description": "High-end consumer goods",
+      "defaultVolatility": 0.2,
+      "priceElasticity": 0.4
+    },
+    "PERISHABLE": {
+      "description": "Time-sensitive goods requiring special handling",
+      "defaultVolatility": 0.35,
+      "priceElasticity": 0.9
+    }
+  },
+  "goodTypes": {
+    "GOODS": {
+      "description": "Standard tradeable commodities",
+      "transportCostMultiplier": 1.0
+    },
+    "CAPITAL": {
+      "description": "Industrial and capital equipment",
+      "transportCostMultiplier": 1.3
+    },
+    "ASSETS": {
+      "description": "Special high-value items",
+      "transportCostMultiplier": 1.5
+    },
+    "LABOR": {
+      "description": "Human resources and services",
+      "transportCostMultiplier": 2.0
+    }
+  }
+}

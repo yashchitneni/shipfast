@@ -1,81 +1,69 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Panel } from '../ui/Panel';
 import { Button } from '../ui/Button';
 import { useEmpireStore } from '@/src/store/empireStore';
-
-interface MarketItem {
-  id: string;
-  good: string;
-  price: number;
-  available: number;
-  trend: 'up' | 'down' | 'stable';
-  change: number;
-  category: 'raw' | 'manufactured' | 'consumer' | 'special';
-}
-
-interface Transaction {
-  id: string;
-  type: 'buy' | 'sell';
-  good: string;
-  quantity: number;
-  pricePerUnit: number;
-  total: number;
-  timestamp: Date;
-}
+import { useMarketStore } from '@/app/store/useMarketStore';
+import type { GoodsCategory } from '@/types/market';
 
 export const MarketTradingPanel: React.FC = () => {
-  const { marketPrices, player, updatePlayerCash } = useEmpireStore();
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedItem, setSelectedItem] = useState<MarketItem | null>(null);
+  const { player, updatePlayerCash } = useEmpireStore();
+  const { 
+    items, 
+    transactions, 
+    isLoading, 
+    error,
+    initializeMarket,
+    buyItem,
+    sellItem,
+    getItemsByCategory,
+    getMarketTrends
+  } = useMarketStore();
+  
+  const [selectedCategory, setSelectedCategory] = useState<GoodsCategory | 'all'>('all');
+  const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [tradeAmount, setTradeAmount] = useState<number>(1);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
 
-  // Expand market items with more details
-  const marketItems: MarketItem[] = [
-    { id: '1', good: 'Electronics', price: 1200, available: 150, trend: 'up', change: 5.2, category: 'manufactured' },
-    { id: '2', good: 'Oil', price: 85, available: 500, trend: 'down', change: -2.1, category: 'raw' },
-    { id: '3', good: 'Containers', price: 450, available: 300, trend: 'stable', change: 0.3, category: 'manufactured' },
-    { id: '4', good: 'Food', price: 320, available: 400, trend: 'up', change: 3.7, category: 'consumer' },
-    { id: '5', good: 'Steel', price: 750, available: 200, trend: 'down', change: -1.5, category: 'raw' },
-    { id: '6', good: 'Textiles', price: 280, available: 350, trend: 'up', change: 2.8, category: 'consumer' },
-    { id: '7', good: 'Machinery', price: 2500, available: 50, trend: 'stable', change: 0.5, category: 'manufactured' },
-    { id: '8', good: 'Chemicals', price: 950, available: 180, trend: 'up', change: 4.1, category: 'special' },
-  ];
+  // Initialize market on mount
+  useEffect(() => {
+    initializeMarket();
+  }, [initializeMarket]);
 
-  const filteredItems = selectedCategory === 'all' 
-    ? marketItems 
-    : marketItems.filter(item => item.category === selectedCategory);
+  // Get filtered items from store
+  const marketItems = selectedCategory === 'all' 
+    ? Array.from(items.values())
+    : getItemsByCategory(selectedCategory);
 
-  const handleTrade = (type: 'buy' | 'sell') => {
-    if (!selectedItem || !player) return;
+  const selectedMarketItem = selectedItem ? items.get(selectedItem) : null;
 
-    const total = selectedItem.price * tradeAmount;
+  const handleTrade = async (type: 'buy' | 'sell') => {
+    if (!selectedItem || !player || !selectedMarketItem) return;
+
+    const total = selectedMarketItem.currentPrice * tradeAmount;
     
     if (type === 'buy' && player.cash < total) {
       alert('Insufficient funds!');
       return;
     }
 
-    const newTransaction: Transaction = {
-      id: Date.now().toString(),
-      type,
-      good: selectedItem.good,
-      quantity: tradeAmount,
-      pricePerUnit: selectedItem.price,
-      total,
-      timestamp: new Date()
-    };
+    try {
+      const transaction = type === 'buy' 
+        ? await buyItem(selectedItem, tradeAmount, player.id)
+        : await sellItem(selectedItem, tradeAmount, player.id);
 
-    setTransactions([newTransaction, ...transactions]);
-    
-    // Update player cash
-    const cashChange = type === 'buy' ? -total : total;
-    updatePlayerCash(cashChange);
-    
-    // Reset trade amount
-    setTradeAmount(1);
+      if (transaction) {
+        // Update player cash
+        const cashChange = type === 'buy' ? -total : total;
+        updatePlayerCash(cashChange);
+        
+        // Reset trade amount
+        setTradeAmount(1);
+      }
+    } catch (err) {
+      console.error('Trade error:', err);
+      alert('Trade failed. Please try again.');
+    }
   };
 
   const getTrendIcon = (trend: string) => {
@@ -86,12 +74,14 @@ export const MarketTradingPanel: React.FC = () => {
     }
   };
 
-  const getCategoryColor = (category: string) => {
+  const getCategoryColor = (category: GoodsCategory) => {
     switch (category) {
-      case 'raw': return 'bg-amber-100 text-amber-800';
-      case 'manufactured': return 'bg-blue-100 text-blue-800';
-      case 'consumer': return 'bg-green-100 text-green-800';
-      case 'special': return 'bg-purple-100 text-purple-800';
+      case 'RAW_MATERIALS': return 'bg-amber-100 text-amber-800';
+      case 'MANUFACTURED': return 'bg-blue-100 text-blue-800';
+      case 'CONSUMER': return 'bg-green-100 text-green-800';
+      case 'TECHNOLOGY': return 'bg-purple-100 text-purple-800';
+      case 'LUXURY': return 'bg-pink-100 text-pink-800';
+      case 'ENERGY': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -112,9 +102,9 @@ export const MarketTradingPanel: React.FC = () => {
             All
           </button>
           <button
-            onClick={() => setSelectedCategory('raw')}
+            onClick={() => setSelectedCategory('RAW_MATERIALS')}
             className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-              selectedCategory === 'raw'
+              selectedCategory === 'RAW_MATERIALS'
                 ? 'bg-amber-600 text-white'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
@@ -122,9 +112,9 @@ export const MarketTradingPanel: React.FC = () => {
             Raw Materials
           </button>
           <button
-            onClick={() => setSelectedCategory('manufactured')}
+            onClick={() => setSelectedCategory('MANUFACTURED')}
             className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-              selectedCategory === 'manufactured'
+              selectedCategory === 'MANUFACTURED'
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
@@ -132,9 +122,9 @@ export const MarketTradingPanel: React.FC = () => {
             Manufactured
           </button>
           <button
-            onClick={() => setSelectedCategory('consumer')}
+            onClick={() => setSelectedCategory('CONSUMER')}
             className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-              selectedCategory === 'consumer'
+              selectedCategory === 'CONSUMER'
                 ? 'bg-green-600 text-white'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
@@ -142,67 +132,80 @@ export const MarketTradingPanel: React.FC = () => {
             Consumer Goods
           </button>
           <button
-            onClick={() => setSelectedCategory('special')}
+            onClick={() => setSelectedCategory('TECHNOLOGY')}
             className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-              selectedCategory === 'special'
+              selectedCategory === 'TECHNOLOGY'
                 ? 'bg-purple-600 text-white'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
           >
-            Special
+            Technology
           </button>
         </div>
 
         {/* Market Items Grid */}
-        <div className="grid grid-cols-1 gap-2 max-h-80 overflow-y-auto">
-          {filteredItems.map(item => (
-            <div
-              key={item.id}
-              onClick={() => setSelectedItem(item)}
-              className={`p-3 rounded-lg cursor-pointer transition-all ${
-                selectedItem?.id === item.id
-                  ? 'bg-blue-50 border-2 border-blue-500'
-                  : 'bg-white border border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{getTrendIcon(item.trend)}</span>
-                  <div>
-                    <h4 className="font-semibold text-gray-900">{item.good}</h4>
-                    <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${getCategoryColor(item.category)}`}>
-                      {item.category}
-                    </span>
+        {isLoading ? (
+          <div className="flex items-center justify-center h-80">
+            <div className="text-gray-500">Loading market data...</div>
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center h-80">
+            <div className="text-red-500">{error}</div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-2 max-h-80 overflow-y-auto">
+            {marketItems.map(item => {
+              const trend = getMarketTrends(item.id);
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => setSelectedItem(item.id)}
+                  className={`p-3 rounded-lg cursor-pointer transition-all ${
+                    selectedItem === item.id
+                      ? 'bg-blue-50 border-2 border-blue-500'
+                      : 'bg-white border border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{getTrendIcon(trend.trend)}</span>
+                      <div>
+                        <h4 className="font-semibold text-gray-900">{item.name}</h4>
+                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${getCategoryColor(item.category)}`}>
+                          {item.category.toLowerCase().replace('_', ' ')}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold">${item.currentPrice.toFixed(2)}</p>
+                      <p className={`text-sm font-medium ${
+                        trend.trend === 'up' ? 'text-green-600' : 
+                        trend.trend === 'down' ? 'text-red-600' : 
+                        'text-gray-600'
+                      }`}>
+                        {trend.trend === 'up' ? '+' : ''}{trend.percentageChange.toFixed(1)}%
+                      </p>
+                    </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-lg font-bold">${item.price}</p>
-                  <p className={`text-sm font-medium ${
-                    item.trend === 'up' ? 'text-green-600' : 
-                    item.trend === 'down' ? 'text-red-600' : 
-                    'text-gray-600'
-                  }`}>
-                    {item.trend === 'up' ? '+' : ''}{item.change}%
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </Panel>
 
       {/* Trading Interface */}
-      {selectedItem && (
-        <Panel title={`Trade ${selectedItem.good}`} className="mb-4">
+      {selectedMarketItem && (
+        <Panel title={`Trade ${selectedMarketItem.name}`} className="mb-4">
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Current Price</label>
-                <p className="text-2xl font-bold">${selectedItem.price}</p>
+                <p className="text-2xl font-bold">${selectedMarketItem.currentPrice.toFixed(2)}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Available</label>
-                <p className="text-2xl">{selectedItem.available} units</p>
+                <p className="text-2xl">{selectedMarketItem.supply.toFixed(0)} units</p>
               </div>
             </div>
 
@@ -250,7 +253,7 @@ export const MarketTradingPanel: React.FC = () => {
 
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-sm text-gray-600">Total Cost</p>
-              <p className="text-2xl font-bold">${(selectedItem.price * tradeAmount).toLocaleString()}</p>
+              <p className="text-2xl font-bold">${(selectedMarketItem.currentPrice * tradeAmount).toLocaleString()}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -258,7 +261,7 @@ export const MarketTradingPanel: React.FC = () => {
                 onClick={() => handleTrade('buy')}
                 variant="primary"
                 className="w-full"
-                disabled={!player || player.cash < selectedItem.price * tradeAmount}
+                disabled={!player || player.cash < selectedMarketItem.currentPrice * tradeAmount || isLoading}
               >
                 Buy
               </Button>
@@ -266,6 +269,7 @@ export const MarketTradingPanel: React.FC = () => {
                 onClick={() => handleTrade('sell')}
                 variant="secondary"
                 className="w-full"
+                disabled={isLoading}
               >
                 Sell
               </Button>
@@ -280,32 +284,37 @@ export const MarketTradingPanel: React.FC = () => {
           <p className="text-gray-500 text-center py-8">No transactions yet</p>
         ) : (
           <div className="space-y-2">
-            {transactions.slice(0, 10).map(transaction => (
-              <div
-                key={transaction.id}
-                className="p-3 bg-white border border-gray-200 rounded-lg"
-              >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <span className={`font-medium ${
-                      transaction.type === 'buy' ? 'text-red-600' : 'text-green-600'
-                    }`}>
-                      {transaction.type === 'buy' ? 'Bought' : 'Sold'}
-                    </span>
-                    <span className="ml-2">{transaction.quantity} {transaction.good}</span>
+            {transactions.slice(0, 10).map(transaction => {
+              const item = items.get(transaction.marketItemId);
+              return (
+                <div
+                  key={transaction.id}
+                  className="p-3 bg-white border border-gray-200 rounded-lg"
+                >
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <span className={`font-medium ${
+                        transaction.type === 'BUY' ? 'text-red-600' : 'text-green-600'
+                      }`}>
+                        {transaction.type === 'BUY' ? 'Bought' : 'Sold'}
+                      </span>
+                      <span className="ml-2">
+                        {transaction.quantity} {item?.name || 'Unknown Item'}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold">${transaction.totalPrice.toLocaleString()}</p>
+                      <p className="text-sm text-gray-500">
+                        ${transaction.pricePerUnit.toFixed(2)}/unit
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold">${transaction.total.toLocaleString()}</p>
-                    <p className="text-sm text-gray-500">
-                      ${transaction.pricePerUnit}/unit
-                    </p>
-                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {new Date(transaction.timestamp).toLocaleTimeString()}
+                  </p>
                 </div>
-                <p className="text-xs text-gray-400 mt-1">
-                  {transaction.timestamp.toLocaleTimeString()}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </Panel>

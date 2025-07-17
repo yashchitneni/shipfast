@@ -15,6 +15,8 @@ import {
 } from '../../types/route';
 import { PortNode, PlacedAsset, AssetDefinition } from '../lib/types/assets';
 import { routeService } from '../../lib/supabase/routes';
+import { useEconomyStore } from './useEconomyStore';
+import portData from '@/app/assets/definitions/ports.json';
 
 // Store state interface
 export interface RouteStoreState {
@@ -133,21 +135,63 @@ const calculateSegment = (
 const calculateProfitability = (
   segments: RouteSegment[],
   capacity: number,
-  maintenanceCostPerHour: number
+  maintenanceCostPerHour: number,
+  originPortId?: string,
+  destinationPortId?: string
 ): RouteProfitability => {
   const totalDistance = segments.reduce((sum, seg) => sum + seg.distance, 0);
   const totalTime = segments.reduce((sum, seg) => sum + seg.estimatedTime, 0);
   const totalFuelCost = segments.reduce((sum, seg) => sum + seg.fuelCost, 0);
   
-  // Revenue calculation (simplified)
-  const revenuePerUnit = 10; // $10 per unit of cargo
-  const revenue = capacity * revenuePerUnit * (1 + totalDistance / 1000); // Distance bonus
+  // Enhanced revenue calculation with port economics
+  let revenueMultiplier = 1.0;
   
-  // Cost calculations
+  // Apply port-specific modifiers if available
+  if (originPortId && destinationPortId) {
+    try {
+      const economyStore = useEconomyStore.getState();
+      const originData = economyStore.getPortEconomicData(originPortId);
+      const destData = economyStore.getPortEconomicData(destinationPortId);
+      
+      if (originData && destData) {
+        // Higher utilization at destination = higher prices = more revenue
+        revenueMultiplier *= (1 + destData.currentUtilization * 0.5);
+        
+        // Lower utilization at origin = lower costs
+        revenueMultiplier *= (1 + (1 - originData.currentUtilization) * 0.2);
+        
+        // Route efficiency bonus based on port efficiency
+        const avgEfficiency = (originData.efficiency + destData.efficiency) / 2;
+        revenueMultiplier *= avgEfficiency;
+      }
+    } catch (error) {
+      // Economy store not available yet, use default multiplier
+      console.warn('Economy store not available for route calculation');
+    }
+  }
+  
+  const baseRevenuePerUnit = 10; // $10 per unit of cargo
+  const revenue = capacity * baseRevenuePerUnit * revenueMultiplier * (1 + totalDistance / 1000);
+  
+  // Cost calculations with port-specific modifiers
+  let portFeesMultiplier = 1.0;
+  if (destinationPortId) {
+    try {
+      const economyStore = useEconomyStore.getState();
+      const destData = economyStore.getPortEconomicData(destinationPortId);
+      if (destData) {
+        // High utilization ports charge more fees
+        portFeesMultiplier = 1 + destData.currentUtilization * 0.5;
+      }
+    } catch (error) {
+      // Use default multiplier
+    }
+  }
+  
   const costs = {
     fuel: totalFuelCost,
     maintenance: maintenanceCostPerHour * totalTime,
-    portFees: segments.length * 500, // $500 per port
+    portFees: segments.length * 500 * portFeesMultiplier,
     crew: totalTime * 100, // $100 per hour for crew
     insurance: revenue * 0.05 // 5% of revenue
   };
@@ -292,8 +336,8 @@ export const useRouteStore = create<RouteStoreState & RouteStoreActions>()(
                 totalTime += segment.estimatedTime;
               }
               
-              // Calculate profitability (placeholder values)
-              const profitability = calculateProfitability(segments, 1000, 100);
+              // Calculate profitability with port economics
+              const profitability = calculateProfitability(segments, 1000, 100, data.originPortId, data.destinationPortId);
               
               const routeData = {
                 owner_id: playerId,
@@ -499,7 +543,7 @@ export const useRouteStore = create<RouteStoreState & RouteStoreActions>()(
               totalTime += segment.estimatedTime;
             }
             
-            const profitability = calculateProfitability(segments, params.assetCapacity, 100);
+            const profitability = calculateProfitability(segments, params.assetCapacity, 100, params.originPortId, params.destinationPortId);
             
             return {
               segments,

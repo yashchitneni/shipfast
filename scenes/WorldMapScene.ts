@@ -5,6 +5,7 @@ import { assetBridge } from '../utils/assetBridge';
 import { IsometricTileMap } from '../utils/IsometricTileMap';
 import { CameraController } from '../utils/CameraController';
 import { minimapBridge } from '../utils/minimapBridge';
+import { LODManager } from './LODManager';
 
 // Create a simple route render system interface for now
 interface RouteRenderSystem {
@@ -84,6 +85,7 @@ export default class WorldMapScene extends Phaser.Scene {
   private isometricMap!: IsometricTileMap;
   private cameraController!: CameraController;
   private routeRenderSystem!: RouteRenderSystem;
+  private lodManager!: LODManager;
   private isDragging: boolean = false;
   private dragStartX: number = 0;
   private dragStartY: number = 0;
@@ -120,6 +122,12 @@ export default class WorldMapScene extends Phaser.Scene {
   preload(): void {
     // Load the pixel art world map
     this.load.image('world-map', '/world-map.png');
+    
+    // Load port data
+    this.load.json('port-data', 'app/assets/definitions/ports.json');
+    
+    // Note: Ship assets will be loaded when available
+    // For now, the LOD system will use placeholder graphics
   }
 
   /**
@@ -143,6 +151,14 @@ export default class WorldMapScene extends Phaser.Scene {
       
       // Create camera controller
       this.cameraController = new CameraController(this.cameras.main);
+      
+      // Initialize LOD Manager
+      this.lodManager = new LODManager(this, {
+        detailThreshold: 1.5,
+        simpleThreshold: 1.2,
+        fadeTransition: true,
+        cullingPadding: 300
+      });
       
       // Set up input handlers
       this.setupInputHandlers();
@@ -195,6 +211,9 @@ export default class WorldMapScene extends Phaser.Scene {
       
       // Set up zoom controls
       this.setupZoomControls();
+      
+      // Set up port event handlers
+      this.setupPortEvents();
       
       // Emit scene ready event
       this.game.events.emit('sceneready', this);
@@ -678,6 +697,11 @@ export default class WorldMapScene extends Phaser.Scene {
       this.routeRenderSystem.update(time, delta);
     }
     
+    // Update LOD culling (throttled to every 50ms for performance)
+    if (this.lodManager && Math.floor(time) % 50 < delta) {
+      this.lodManager.updateCulling();
+    }
+    
     // Update minimap viewport (throttled to every 100ms)
     if (Math.floor(time) % 100 < delta) {
       this.updateMinimapViewport();
@@ -706,81 +730,124 @@ export default class WorldMapScene extends Phaser.Scene {
   private extractPortsFromMap(): void {
     const store = useEmpireStore.getState();
     
-    // Get port nodes from the isometric map
-    const portNodes = this.isometricMap.getPortNodes();
-    
-    // Convert to world coordinates and create port markers
-    const worldPortNodes: Array<{
-      id: string;
-      name: string;
-      position: { x: number; y: number };
-      region: string;
-      capacity: number;
-      connectedRoutes: string[];
-    }> = [];
-    
-    portNodes.forEach(portNode => {
-      // Convert tile coordinates to world coordinates
-      const worldPos = this.isometricMap.tileToWorld(portNode.position.x, portNode.position.y);
+    // Load port data from JSON
+    const portData = this.cache.json.get('port-data');
+    if (portData && portData.ports) {
+      // Register ports with LOD manager
+      this.lodManager.registerPorts(portData.ports);
       
-      // Create a port node with world coordinates
-      const worldPortNode = {
-        id: portNode.id,
-        name: portNode.name,
-        position: { x: worldPos.x, y: worldPos.y },
-        region: portNode.region,
-        capacity: 100,
-        connectedRoutes: portNode.connectedRoutes
-      };
+      // Convert port data for store
+      const worldPortNodes: Array<{
+        id: string;
+        name: string;
+        position: { x: number; y: number };
+        region: string;
+        capacity: number;
+        connectedRoutes: string[];
+      }> = [];
       
-      worldPortNodes.push(worldPortNode);
+      portData.ports.forEach((port: any) => {
+        const worldPortNode = {
+          id: port.id,
+          name: port.name,
+          position: port.coordinates || { x: 0, y: 0 },
+          region: port.countryName || 'Unknown',
+          capacity: port.capacity || 100,
+          connectedRoutes: []
+        };
+        
+        worldPortNodes.push(worldPortNode);
+      });
       
-      // Create a visual port marker with click handler
-      this.createPortMarker(worldPortNode);
-    });
-    
-    // Register all found ports with the empire store
-    console.log(`Found ${worldPortNodes.length} ports in the map`);
-    store.setPortNodes(worldPortNodes);
+      // Register all ports with the empire store
+      console.log(`Loaded ${worldPortNodes.length} ports from data`);
+      store.setPortNodes(worldPortNodes);
+      
+      // Load any placed assets for ports
+      this.loadPortAssets();
+    } else {
+      // Fallback to extracting from map
+      const portNodes = this.isometricMap.getPortNodes();
+      
+      // Convert to world coordinates and create port markers
+      const worldPortNodes: Array<{
+        id: string;
+        name: string;
+        position: { x: number; y: number };
+        region: string;
+        capacity: number;
+        connectedRoutes: string[];
+      }> = [];
+      
+      portNodes.forEach(portNode => {
+        // Convert tile coordinates to world coordinates
+        const worldPos = this.isometricMap.tileToWorld(portNode.position.x, portNode.position.y);
+        
+        // Create a port node with world coordinates
+        const worldPortNode = {
+          id: portNode.id,
+          name: portNode.name,
+          position: { x: worldPos.x, y: worldPos.y },
+          region: portNode.region,
+          capacity: 100,
+          connectedRoutes: portNode.connectedRoutes
+        };
+        
+        worldPortNodes.push(worldPortNode);
+        
+        // Register with LOD manager
+        this.lodManager.registerPort({
+          id: portNode.id,
+          name: portNode.name,
+          coordinates: worldPortNode.position,
+          infrastructure: {
+            docks: Math.floor(Math.random() * 50) + 10,
+            cranes: Math.floor(Math.random() * 100) + 20,
+            warehouses: Math.floor(Math.random() * 30) + 5,
+            railConnections: Math.random() > 0.5,
+            deepWaterAccess: Math.random() > 0.3
+          }
+        });
+      });
+      
+      // Register all found ports with the empire store
+      console.log(`Found ${worldPortNodes.length} ports in the map`);
+      store.setPortNodes(worldPortNodes);
+    }
   }
   
-  private createPortMarker(portNode: { id: string; name: string; position: { x: number; y: number }; region: string }): void {
-    // Create a simple port marker sprite (using a circle for now)
-    const portMarker = this.add.circle(portNode.position.x, portNode.position.y, 20, 0xFFD700, 0.6);
-    portMarker.setStrokeStyle(2, 0xFFFFFF);
-    portMarker.setDepth(500);
+  private loadPortAssets(): void {
+    const store = useEmpireStore.getState();
     
-    // Make it interactive
-    portMarker.setInteractive({ useHandCursor: true });
+    // Get all placed assets
+    const placedAssets = Array.from(store.placedAssets.values());
     
-    // Store port data
-    portMarker.setData('type', 'port');
-    portMarker.setData('id', portNode.id);
-    portMarker.setData('name', portNode.name);
-    portMarker.setData('position', portNode.position);
+    // Group assets by port
+    const assetsByPort = new Map<string, any[]>();
     
-    // Add hover effect
-    portMarker.on('pointerover', () => {
-      portMarker.setScale(1.2);
-      portMarker.setAlpha(0.8);
-      this.showTooltip(portNode.name, portNode.position.x, portNode.position.y - 40);
-    });
-    
-    portMarker.on('pointerout', () => {
-      portMarker.setScale(1);
-      portMarker.setAlpha(0.6);
-      this.hideTooltip();
-    });
-    
-    // Add click handler for zoom
-    portMarker.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (pointer.leftButtonDown()) {
-        // Prevent clearing the selected port when clicking on a port
-        pointer.event.stopPropagation();
-        this.zoomToPort(portNode);
+    placedAssets.forEach(asset => {
+      if (asset.portId) {
+        if (!assetsByPort.has(asset.portId)) {
+          assetsByPort.set(asset.portId, []);
+        }
+        
+        const assetDef = store.assetDefinitions.get(asset.definitionId);
+        assetsByPort.get(asset.portId)!.push({
+          id: asset.id,
+          type: assetDef?.type || 'ship',
+          name: assetDef?.name || 'Unknown Asset',
+          status: asset.status
+        });
       }
     });
+    
+    // Register assets with LOD manager
+    assetsByPort.forEach((assets, portId) => {
+      this.lodManager.addPortAssets(portId, assets);
+    });
   }
+  
+  // Port marker creation is now handled by LOD system
   
   private zoomToPort(portNode: { id: string; name: string; position: { x: number; y: number } }): void {
     const store = useEmpireStore.getState();
@@ -877,6 +944,23 @@ export default class WorldMapScene extends Phaser.Scene {
     });
   }
   
+  private setupPortEvents(): void {
+    // Handle port selection
+    this.events.on('port-selected', (portId: string) => {
+      const store = useEmpireStore.getState();
+      store.setSelectedPort(portId);
+    });
+    
+    // Handle zoom to port
+    this.events.on('zoom-to-port', (data: { id: string; position: { x: number; y: number } }) => {
+      this.zoomToPort({
+        id: data.id,
+        name: '',
+        position: data.position
+      });
+    });
+  }
+  
   private updateMinimapViewport(): void {
     // Throttle minimap updates to prevent infinite loops
     if (!minimapBridge || typeof minimapBridge.updateCameraViewport !== 'function') {
@@ -895,6 +979,11 @@ export default class WorldMapScene extends Phaser.Scene {
   }
 
   shutdown(): void {
+    // Clean up LOD manager
+    if (this.lodManager) {
+      this.lodManager.destroy();
+    }
+    
     // Clean up asset bridge
     assetBridge.destroy();
     

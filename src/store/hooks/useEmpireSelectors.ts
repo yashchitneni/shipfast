@@ -243,6 +243,11 @@ export const useMarketTrends = (goodId: string, periods: number = 10) => {
   });
 };
 
+// Additional helper for getting all assets
+export const useAllAssets = () => {
+  return useEmpireStore(state => Array.from(state.placedAssets.values()), shallow);
+};
+
 // Performance monitoring hook
 export const useStorePerformance = () => {
   const [metrics, setMetrics] = React.useState({

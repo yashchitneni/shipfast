@@ -1,7 +1,7 @@
-import { useRouteStore } from '@/store/useRouteStore';
-import { useEconomyStore } from '@/store/useEconomyStore';
-import { useMarketStore } from '@/store/useMarketStore';
-import { useAIStore } from '@/store/useAIStore';
+import { useRouteStore } from '../../store/useRouteStore';
+import { useEconomyStore } from '../../store/useEconomyStore';
+import { useMarketStore } from '../../store/useMarketStore';
+import { useAIStore } from '../../store/useAIStore';
 import { useEmpireStore } from '../../../src/store/empireStore';
 import type { Route, RouteEvent } from '@/types/route';
 import type { PerformanceMetrics } from '@/types/ai-companion';

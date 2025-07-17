@@ -10,8 +10,10 @@ export enum MarketType {
 export enum GoodsCategory {
   RAW_MATERIALS = 'RAW_MATERIALS',
   MANUFACTURED = 'MANUFACTURED',
+  CONSUMER = 'CONSUMER',
+  TECHNOLOGY = 'TECHNOLOGY',
   LUXURY = 'LUXURY',
-  PERISHABLE = 'PERISHABLE'
+  ENERGY = 'ENERGY'
 }
 
 export interface MarketItem {
@@ -38,11 +40,11 @@ export interface PriceHistory {
 
 export interface Transaction {
   id: string;
-  itemId: string;
+  marketItemId: string;
   type: 'BUY' | 'SELL';
   quantity: number;
-  price: number;
-  total: number;
+  pricePerUnit: number;
+  totalPrice: number;
   playerId: string;
   timestamp: Date;
 }

@@ -1,17 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Panel } from '../ui/Panel';
 import { useEmpireStore } from '@/src/store/empireStore';
-
-interface FinancialRecord {
-  id: string;
-  type: 'income' | 'expense';
-  category: string;
-  description: string;
-  amount: number;
-  timestamp: Date;
-}
+import { useEconomyStore } from '@/app/store/useEconomyStore';
+import type { FinancialRecord } from '@/app/lib/types/economy';
 
 interface FinancialSummary {
   totalIncome: number;
@@ -22,22 +15,24 @@ interface FinancialSummary {
 
 export const FinancialDashboard: React.FC = () => {
   const { player } = useEmpireStore();
+  const { 
+    financialRecords, 
+    playerFinancials,
+    monthlyFinancials,
+    initializeEconomy,
+    updateMonthlyFinancials
+  } = useEconomyStore();
+  
   const [timeframe, setTimeframe] = useState<'day' | 'week' | 'month' | 'all'>('week');
   
-  // Mock financial data
-  const [records] = useState<FinancialRecord[]>([
-    { id: '1', type: 'income', category: 'Shipping', description: 'Route: Shanghai-Rotterdam', amount: 45000, timestamp: new Date(Date.now() - 86400000) },
-    { id: '2', type: 'expense', category: 'Fuel', description: 'Bunker fuel for MV Horizon', amount: 12000, timestamp: new Date(Date.now() - 86400000 * 2) },
-    { id: '3', type: 'income', category: 'Trading', description: 'Electronics sale in Rotterdam', amount: 8500, timestamp: new Date(Date.now() - 86400000 * 2) },
-    { id: '4', type: 'expense', category: 'Maintenance', description: 'Engine maintenance', amount: 5000, timestamp: new Date(Date.now() - 86400000 * 3) },
-    { id: '5', type: 'income', category: 'Shipping', description: 'Route: LA-Tokyo Express', amount: 32000, timestamp: new Date(Date.now() - 86400000 * 3) },
-    { id: '6', type: 'expense', category: 'Port Fees', description: 'Rotterdam port charges', amount: 3500, timestamp: new Date(Date.now() - 86400000 * 4) },
-    { id: '7', type: 'expense', category: 'Crew', description: 'Monthly wages', amount: 18000, timestamp: new Date(Date.now() - 86400000 * 5) },
-    { id: '8', type: 'income', category: 'Charter', description: 'Short-term vessel charter', amount: 15000, timestamp: new Date(Date.now() - 86400000 * 5) },
-  ]);
+  // Initialize economy on mount
+  useEffect(() => {
+    initializeEconomy();
+    updateMonthlyFinancials();
+  }, [initializeEconomy, updateMonthlyFinancials]);
 
   const calculateSummary = (): FinancialSummary => {
-    const filteredRecords = filterRecordsByTimeframe(records);
+    const filteredRecords = filterRecordsByTimeframe(financialRecords);
     const totalIncome = filteredRecords
       .filter(r => r.type === 'income')
       .reduce((sum, r) => sum + r.amount, 0);
@@ -68,21 +63,25 @@ export const FinancialDashboard: React.FC = () => {
         return allRecords;
     }
 
-    return allRecords.filter(record => record.timestamp >= cutoffDate);
+    return allRecords.filter(record => new Date(record.timestamp) >= cutoffDate);
   };
 
   const summary = calculateSummary();
-  const filteredRecords = filterRecordsByTimeframe(records);
+  const filteredRecords = filterRecordsByTimeframe(financialRecords);
 
   const getCategoryIcon = (category: string) => {
     const icons: { [key: string]: string } = {
-      'Shipping': '🚢',
-      'Trading': '📈',
-      'Fuel': '⛽',
-      'Maintenance': '🔧',
-      'Port Fees': '⚓',
-      'Crew': '👥',
-      'Charter': '📋',
+      'route-profit': '🚢',
+      'trading': '📈',
+      'market-trade': '🏪',
+      'fuel': '⛽',
+      'maintenance': '🔧',
+      'port-fees': '⚓',
+      'crew': '👥',
+      'charter': '📋',
+      'loan': '🏦',
+      'loan-payment': '💸',
+      'disaster': '⚠️',
     };
     return icons[category] || '💰';
   };
@@ -103,7 +102,7 @@ export const FinancialDashboard: React.FC = () => {
         <div className="bg-white rounded-lg p-4 border border-gray-200">
           <p className="text-sm text-gray-600 mb-1">Current Balance</p>
           <p className="text-2xl font-bold text-gray-900">
-            {formatCurrency(player?.cash || 0)}
+            {formatCurrency(playerFinancials.cash)}
           </p>
         </div>
         <div className="bg-green-50 rounded-lg p-4 border border-green-200">
@@ -133,35 +132,49 @@ export const FinancialDashboard: React.FC = () => {
           }`}>
             {formatCurrency(summary.netProfit)}
           </p>
+          <p className="text-xs mt-1">
+            {playerFinancials.profitMargin > 0 
+              ? `${(playerFinancials.profitMargin * 100).toFixed(1)}% margin`
+              : ''}
+          </p>
         </div>
       </div>
 
       {/* Profit Chart (simplified visualization) */}
-      <Panel title="Profit Margin" className="mb-4">
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Profit Margin</span>
-            <span className="font-medium">
-              {summary.profitMargin.toFixed(1)}%
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-8">
-            <div
-              className={`h-8 rounded-full flex items-center justify-center text-white font-medium ${
-                summary.profitMargin >= 20 ? 'bg-green-500' :
-                summary.profitMargin >= 10 ? 'bg-yellow-500' :
-                summary.profitMargin >= 0 ? 'bg-orange-500' :
-                'bg-red-500'
-              }`}
-              style={{ width: `${Math.min(100, Math.max(0, summary.profitMargin))}%` }}
-            >
-              {summary.profitMargin > 5 && `${summary.profitMargin.toFixed(1)}%`}
+      <Panel title="Financial Overview" className="mb-4">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Profit Margin</span>
+              <span className="font-medium">
+                {summary.profitMargin.toFixed(1)}%
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-8">
+              <div
+                className={`h-8 rounded-full flex items-center justify-center text-white font-medium ${
+                  summary.profitMargin >= 20 ? 'bg-green-500' :
+                  summary.profitMargin >= 10 ? 'bg-yellow-500' :
+                  summary.profitMargin >= 0 ? 'bg-orange-500' :
+                  'bg-red-500'
+                }`}
+                style={{ width: `${Math.min(100, Math.max(0, summary.profitMargin))}%` }}
+              >
+                {summary.profitMargin > 5 && `${summary.profitMargin.toFixed(1)}%`}
+              </div>
             </div>
           </div>
-          <div className="flex justify-between text-xs text-gray-500">
-            <span>0%</span>
-            <span>50%</span>
-            <span>100%</span>
+          
+          {/* Additional financial metrics */}
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="bg-gray-50 rounded p-2">
+              <p className="text-gray-600">Credit Rating</p>
+              <p className="font-bold">{playerFinancials.creditRating}</p>
+            </div>
+            <div className="bg-gray-50 rounded p-2">
+              <p className="text-gray-600">Net Worth</p>
+              <p className="font-bold">{formatCurrency(playerFinancials.netWorth)}</p>
+            </div>
           </div>
         </div>
       </Panel>
@@ -207,7 +220,7 @@ export const FinancialDashboard: React.FC = () => {
                           {record.description}
                         </h4>
                         <p className="text-sm text-gray-600">
-                          {record.category}
+                          {record.category.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                         </p>
                       </div>
                     </div>
@@ -219,7 +232,7 @@ export const FinancialDashboard: React.FC = () => {
                         {formatCurrency(record.amount)}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {record.timestamp.toLocaleDateString()}
+                        {new Date(record.timestamp).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
@@ -258,6 +271,25 @@ export const FinancialDashboard: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {/* Monthly Performance */}
+      {monthlyFinancials.length > 0 && (
+        <Panel title="Monthly Performance" className="mt-4">
+          <div className="grid grid-cols-2 gap-2">
+            {monthlyFinancials.slice(-2).map((monthly) => (
+              <div key={monthly.month} className="bg-gray-50 rounded p-3">
+                <p className="text-sm font-medium text-gray-700">{monthly.month}</p>
+                <p className={`text-lg font-bold ${monthly.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(monthly.profit)}
+                </p>
+                <p className="text-xs text-gray-500">
+                  Revenue: {formatCurrency(monthly.revenue)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </Panel>
+      )}
     </div>
   );
 };

@@ -55,7 +55,8 @@ export interface EmpireState {
   /**
    * @property {object} assets - Legacy asset structure. Contains all player-owned assets,
    * categorized by type (ships, planes, etc.).
-   * @deprecated Should be replaced by the `placedAssets` Map for better performance and easier management.
+   * @deprecated Use `placedAssets` Map instead. This field is maintained only for migration purposes.
+   * Will be removed in a future version once all data has been migrated.
    */
   assets: {
     ships: Record<string, Ship>;
@@ -236,6 +237,10 @@ export interface EmpireActions {
   
   // Reset action
   reset: () => void;
+  
+  // Migration actions
+  migrateLegacyAssets: () => void;
+  isLegacyDataPresent: () => boolean;
 }
 
 // Initial state
@@ -1280,7 +1285,60 @@ export const useEmpireStore = create<EmpireState & EmpireActions>()(
           }),
           
           // Reset action
-          reset: () => set(() => initialState)
+          reset: () => set(() => initialState),
+          
+          // Migration actions
+          migrateLegacyAssets: () => {
+            const state = get();
+            
+            // Import migration utilities
+            const { migrateLegacyAssets } = require('../utils/assetMigration');
+            
+            // Check if there's legacy data to migrate
+            const hasLegacyData = Object.keys(state.assets.ships).length > 0 ||
+                                 Object.keys(state.assets.planes).length > 0 ||
+                                 Object.keys(state.assets.warehouses).length > 0 ||
+                                 Object.keys(state.assets.specialists).length > 0;
+            
+            if (!hasLegacyData) {
+              console.log('No legacy assets to migrate');
+              return;
+            }
+            
+            // Perform migration
+            const migratedAssets = migrateLegacyAssets(state.assets);
+            
+            set((state) => {
+              // Merge migrated assets with existing placedAssets
+              for (const [id, asset] of migratedAssets) {
+                state.placedAssets.set(id, asset);
+              }
+              
+              // Clear legacy data
+              state.assets = {
+                ships: {},
+                planes: {},
+                warehouses: {},
+                specialists: {}
+              };
+            });
+            
+            // Add notification
+            get().addNotification({
+              type: 'SUCCESS',
+              title: 'Assets Migrated',
+              message: `Successfully migrated ${migratedAssets.size} assets to the new format.`,
+              isRead: false
+            });
+          },
+          
+          isLegacyDataPresent: () => {
+            const state = get();
+            return Object.keys(state.assets.ships).length > 0 ||
+                   Object.keys(state.assets.planes).length > 0 ||
+                   Object.keys(state.assets.warehouses).length > 0 ||
+                   Object.keys(state.assets.specialists).length > 0;
+          }
         }))
       ),
       {

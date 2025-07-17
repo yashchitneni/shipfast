@@ -1,5 +1,9 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
+import portData from '@/app/assets/definitions/ports.json';
+import portEconomics from '@/app/assets/definitions/port-economics.json';
+import marketGoods from '@/app/assets/definitions/market-goods.json';
+import { generatePortData } from '@/app/utils/portDataGenerators';
 import type {
   Good,
   GoodsCategory,
@@ -14,7 +18,9 @@ import type {
   RouteCalculation,
   CompoundingGrowth,
   MonthlyFinancial,
-  PricePoint
+  PricePoint,
+  PortEconomicData,
+  TradeOpportunity
 } from '@/app/lib/types/economy';
 
 interface EconomyState {
@@ -28,6 +34,10 @@ interface EconomyState {
   
   // Economy modifiers
   economyModifiers: EconomyModifiers;
+  
+  // Port economics
+  portEconomicData: Map<string, PortEconomicData>;
+  tradeOpportunities: TradeOpportunity[];
   
   // Actions
   initializeEconomy: () => void;
@@ -45,6 +55,13 @@ interface EconomyState {
   applySpecialistBonus: (bonus: number) => void;
   applyTimeEventEffects: (effects: { demandMultiplier?: number; priceMultiplier?: number; costMultiplier?: number }) => void;
   removeTimeEventEffects: () => void;
+  
+  // Port economics methods
+  getPortPrice: (goodId: string, portId: string) => number;
+  getPortEconomicData: (portId: string) => PortEconomicData | null;
+  calculateTradeOpportunities: () => TradeOpportunity[];
+  updatePortEconomics: () => void;
+  getPortModifier: (goodId: string, portId: string, isExport: boolean) => number;
 }
 
 const INITIAL_CASH = 100000;
@@ -115,6 +132,9 @@ export const useEconomyStore = create<EconomyState>()(
           governmentSubsidy: 0
         },
         
+        portEconomicData: new Map(),
+        tradeOpportunities: [],
+        
         initializeEconomy: () => {
           const initialGoods: Good[] = [
             {
@@ -168,6 +188,12 @@ export const useEconomyStore = create<EconomyState>()(
           
           // Calculate initial prices
           get().updateMarketPrices();
+          
+          // Initialize port economics
+          get().updatePortEconomics();
+          
+          // Calculate initial trade opportunities
+          set({ tradeOpportunities: get().calculateTradeOpportunities() });
         },
         
         updateMarketPrices: () => {
@@ -584,6 +610,137 @@ export const useEconomyStore = create<EconomyState>()(
           
           // Recalculate prices without event effects
           get().updateMarketPrices();
+        },
+        
+        // Port economics methods
+        getPortPrice: (goodId: string, portId: string): number => {
+          const { goods } = get();
+          const good = goods.get(goodId);
+          if (!good) return 0;
+          
+          const basePrice = good.currentPrice || good.baseCost;
+          const portModifier = get().getPortModifier(goodId, portId, false);
+          
+          return basePrice * portModifier;
+        },
+        
+        getPortEconomicData: (portId: string): PortEconomicData | null => {
+          const { portEconomicData } = get();
+          return portEconomicData.get(portId) || null;
+        },
+        
+        getPortModifier: (goodId: string, portId: string, isExport: boolean): number => {
+          const port = portData.ports.find(p => p.id === portId);
+          if (!port) return 1.0;
+          
+          // Check if port is major exporter or importer
+          const isExporter = port.majorExports.includes(goodId);
+          const isImporter = port.majorImports.includes(goodId);
+          
+          // Apply export/import modifiers from roadmap
+          if (isExporter && isExport) {
+            // Export ports: 20% cheaper for exported goods
+            return 0.8;
+          } else if (isImporter && !isExport) {
+            // Import ports: 30% more expensive for imported goods
+            return 1.3;
+          }
+          
+          // Apply port-specific economic modifiers
+          const portModifier = port.economicModifiers[goodId] || 1.0;
+          
+          // Apply regional modifiers
+          const region = portEconomics.portRegionMapping[portId as keyof typeof portEconomics.portRegionMapping];
+          if (region) {
+            const regionalMods = portEconomics.portEconomics.regionalModifiers[region];
+            if (regionalMods && regionalMods[goodId]) {
+              const regionalMod = isExport ? regionalMods[goodId].supply : regionalMods[goodId].demand;
+              return portModifier * (2 - regionalMod); // Invert for price (high supply = lower price)
+            }
+          }
+          
+          return portModifier;
+        },
+        
+        calculateTradeOpportunities: (): TradeOpportunity[] => {
+          const opportunities: TradeOpportunity[] = [];
+          const { goods } = get();
+          
+          // Find profitable trade routes between ports
+          for (const good of goods.values()) {
+            for (const originPort of portData.ports) {
+              if (!originPort.majorExports.includes(good.id)) continue;
+              
+              for (const destPort of portData.ports) {
+                if (originPort.id === destPort.id || !destPort.majorImports.includes(good.id)) continue;
+                
+                const originPrice = get().getPortPrice(good.id, originPort.id);
+                const destPrice = get().getPortPrice(good.id, destPort.id);
+                const profit = destPrice - originPrice;
+                const profitMargin = (profit / originPrice) * 100;
+                
+                // Only include opportunities with >10% profit margin
+                if (profitMargin > 10) {
+                  // Calculate simple distance
+                  const dx = originPort.coordinates.x - destPort.coordinates.x;
+                  const dy = originPort.coordinates.y - destPort.coordinates.y;
+                  const distance = Math.sqrt(dx * dx + dy * dy);
+                  
+                  opportunities.push({
+                    id: `${originPort.id}-${destPort.id}-${good.id}`,
+                    goodId: good.id,
+                    goodName: good.name,
+                    originPortId: originPort.id,
+                    originPortName: originPort.name,
+                    destinationPortId: destPort.id,
+                    destinationPortName: destPort.name,
+                    originPrice,
+                    destinationPrice: destPrice,
+                    potentialProfit: profit,
+                    profitMargin,
+                    distance,
+                    estimatedTime: Math.max(24, distance / 10), // Assume 10 units per hour
+                    profitPerHour: profit / Math.max(24, distance / 10),
+                    riskLevel: Math.min(30, distance / 100), // Higher distance = higher risk
+                    lastUpdated: Date.now()
+                  });
+                }
+              }
+            }
+          }
+          
+          // Sort by profit per hour (efficiency)
+          return opportunities.sort((a, b) => b.profitPerHour - a.profitPerHour);
+        },
+        
+        updatePortEconomics: () => {
+          const portEconData = new Map<string, PortEconomicData>();
+          
+          for (const port of portData.ports) {
+            const generatedData = generatePortData(port.id);
+            if (generatedData) {
+              portEconData.set(port.id, {
+                portId: port.id,
+                portName: port.name,
+                region: portEconomics.portRegionMapping[port.id as keyof typeof portEconomics.portRegionMapping] || 'unknown',
+                capacity: port.capacity,
+                efficiency: port.efficiency,
+                currentUtilization: generatedData.utilization / 100,
+                goods: generatedData.goods.map(g => ({
+                  goodId: g.goodId,
+                  localPrice: g.currentPrice,
+                  supply: g.supply,
+                  demand: g.demand,
+                  inventory: g.inventory,
+                  trend: g.trend,
+                  modifier: port.economicModifiers[g.goodId] || 1.0
+                })),
+                lastUpdated: Date.now()
+              });
+            }
+          }
+          
+          set({ portEconomicData: portEconData });
         }
       }),
       {
@@ -597,7 +754,8 @@ export const useEconomyStore = create<EconomyState>()(
             return {
               state: {
                 ...state,
-                goods: new Map(state.goods || [])
+                goods: new Map(state.goods || []),
+                portEconomicData: new Map(state.portEconomicData || [])
               }
             };
           },
@@ -606,7 +764,8 @@ export const useEconomyStore = create<EconomyState>()(
             const serialized = {
               state: {
                 ...state,
-                goods: Array.from(state.goods.entries())
+                goods: Array.from(state.goods.entries()),
+                portEconomicData: Array.from(state.portEconomicData.entries())
               }
             };
             localStorage.setItem(name, JSON.stringify(serialized));

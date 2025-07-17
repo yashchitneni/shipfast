@@ -1,0 +1,559 @@
+{
+  "ports": [
+    {
+      "id": "port-shanghai",
+      "name": "Port of Shanghai",
+      "country": "CN",
+      "countryName": "China",
+      "realWorldTEU": 49160000,
+      "location": { "lat": 31.2304, "lon": 121.4737 },
+      "coordinates": { "x": 3650, "y": 1820 },
+      "majorExports": ["electronics", "machinery", "textiles", "steel", "chemicals"],
+      "majorImports": ["crude_petroleum", "iron_ore", "soybeans", "coal", "integrated_circuits"],
+      "capacity": 50000,
+      "efficiency": 0.95,
+      "infrastructure": {
+        "docks": 125,
+        "cranes": 450,
+        "warehouses": 85,
+        "railConnections": true,
+        "deepWaterAccess": true
+      },
+      "economicModifiers": {
+        "electronics": 0.8,
+        "machinery": 0.85,
+        "textiles": 0.75,
+        "crude_petroleum": 1.25,
+        "iron_ore": 1.3
+      }
+    },
+    {
+      "id": "port-singapore",
+      "name": "Port of Singapore",
+      "country": "SG",
+      "countryName": "Singapore",
+      "realWorldTEU": 39000000,
+      "location": { "lat": 1.2655, "lon": 103.8186 },
+      "coordinates": { "x": 3450, "y": 2450 },
+      "majorExports": ["refined_petroleum", "electronics", "chemicals", "machinery", "pharmaceuticals"],
+      "majorImports": ["crude_petroleum", "electronics", "machinery", "steel", "chemicals"],
+      "capacity": 40000,
+      "efficiency": 0.98,
+      "infrastructure": {
+        "docks": 67,
+        "cranes": 204,
+        "warehouses": 50,
+        "railConnections": false,
+        "deepWaterAccess": true
+      },
+      "economicModifiers": {
+        "refined_petroleum": 0.75,
+        "electronics": 0.9,
+        "crude_petroleum": 1.2,
+        "chemicals": 0.95
+      }
+    },
+    {
+      "id": "port-ningbo-zhoushan",
+      "name": "Ningbo-Zhoushan Port",
+      "country": "CN",
+      "countryName": "China",
+      "realWorldTEU": 35300000,
+      "location": { "lat": 29.8683, "lon": 121.5440 },
+      "coordinates": { "x": 3660, "y": 1850 },
+      "majorExports": ["steel", "textiles", "machinery", "chemicals", "plastics"],
+      "majorImports": ["iron_ore", "crude_petroleum", "coal", "grains", "copper"],
+      "capacity": 35000,
+      "efficiency": 0.92,
+      "infrastructure": {
+        "docks": 191,
+        "cranes": 354,
+        "warehouses": 70,
+        "railConnections": true,
+        "deepWaterAccess": true
+      },
+      "economicModifiers": {
+        "steel": 0.8,
+        "textiles": 0.85,
+        "iron_ore": 1.3,
+        "crude_petroleum": 1.25
+      }
+    },
+    {
+      "id": "port-shenzhen",
+      "name": "Port of Shenzhen",
+      "country": "CN",
+      "countryName": "China",
+      "realWorldTEU": 30000000,
+      "location": { "lat": 22.5431, "lon": 113.9680 },
+      "coordinates": { "x": 3580, "y": 1980 },
+      "majorExports": ["electronics", "machinery", "furniture", "plastics", "toys"],
+      "majorImports": ["integrated_circuits", "crude_petroleum", "copper", "plastics", "iron_ore"],
+      "capacity": 32000,
+      "efficiency": 0.93,
+      "infrastructure": {
+        "docks": 140,
+        "cranes": 336,
+        "warehouses": 65,
+        "railConnections": true,
+        "deepWaterAccess": true
+      },
+      "economicModifiers": {
+        "electronics": 0.75,
+        "machinery": 0.85,
+        "furniture": 0.8,
+        "integrated_circuits": 1.25
+      }
+    },
+    {
+      "id": "port-qingdao",
+      "name": "Port of Qingdao",
+      "country": "CN",
+      "countryName": "China",
+      "realWorldTEU": 25000000,
+      "location": { "lat": 36.0669, "lon": 120.3669 },
+      "coordinates": { "x": 3640, "y": 1750 },
+      "majorExports": ["machinery", "textiles", "electronics", "steel", "rubber"],
+      "majorImports": ["iron_ore", "crude_petroleum", "soybeans", "coal", "copper"],
+      "capacity": 26000,
+      "efficiency": 0.90,
+      "infrastructure": {
+        "docks": 73,
+        "cranes": 180,
+        "warehouses": 45,
+        "railConnections": true,
+        "deepWaterAccess": true
+      },
+      "economicModifiers": {
+        "machinery": 0.85,
+        "textiles": 0.8,
+        "iron_ore": 1.3,
+        "soybeans": 1.2
+      }
+    },
+    {
+      "id": "port-guangzhou",
+      "name": "Port of Guangzhou",
+      "country": "CN",
+      "countryName": "China",
+      "realWorldTEU": 25500000,
+      "location": { "lat": 23.1291, "lon": 113.2644 },
+      "coordinates": { "x": 3570, "y": 1960 },
+      "majorExports": ["electronics", "textiles", "furniture", "machinery", "toys"],
+      "majorImports": ["crude_petroleum", "iron_ore", "coal", "grains", "chemicals"],
+      "capacity": 26000,
+      "efficiency": 0.91,
+      "infrastructure": {
+        "docks": 89,
+        "cranes": 230,
+        "warehouses": 55,
+        "railConnections": true,
+        "deepWaterAccess": true
+      },
+      "economicModifiers": {
+        "electronics": 0.8,
+        "textiles": 0.75,
+        "furniture": 0.85,
+        "crude_petroleum": 1.25
+      }
+    },
+    {
+      "id": "port-busan",
+      "name": "Port of Busan",
+      "country": "KR",
+      "countryName": "South Korea",
+      "realWorldTEU": 22660000,
+      "location": { "lat": 35.1796, "lon": 129.0756 },
+      "coordinates": { "x": 3730, "y": 1780 },
+      "majorExports": ["automobiles", "electronics", "steel", "ships", "petrochemicals"],
+      "majorImports": ["crude_petroleum", "coal", "iron_ore", "lng", "electronics"],
+      "capacity": 23000,
+      "efficiency": 0.94,
+      "infrastructure": {
+        "docks": 169,
+        "cranes": 253,
+        "warehouses": 60,
+        "railConnections": true,
+        "deepWaterAccess": true
+      },
+      "economicModifiers": {
+        "automobiles": 0.75,
+        "electronics": 0.85,
+        "steel": 0.8,
+        "crude_petroleum": 1.3
+      }
+    },
+    {
+      "id": "port-tianjin",
+      "name": "Port of Tianjin",
+      "country": "CN",
+      "countryName": "China",
+      "realWorldTEU": 22000000,
+      "location": { "lat": 39.1422, "lon": 117.1767 },
+      "coordinates": { "x": 3620, "y": 1700 },
+      "majorExports": ["steel", "machinery", "chemicals", "automobiles", "textiles"],
+      "majorImports": ["iron_ore", "crude_petroleum", "coal", "grains", "copper"],
+      "capacity": 22500,
+      "efficiency": 0.89,
+      "infrastructure": {
+        "docks": 159,
+        "cranes": 280,
+        "warehouses": 70,
+        "railConnections": true,
+        "deepWaterAccess": true
+      },
+      "economicModifiers": {
+        "steel": 0.8,
+        "machinery": 0.85,
+        "chemicals": 0.9,
+        "iron_ore": 1.25
+      }
+    },
+    {
+      "id": "port-jebel-ali",
+      "name": "Jebel Ali Port",
+      "country": "AE",
+      "countryName": "United Arab Emirates",
+      "realWorldTEU": 15000000,
+      "location": { "lat": 25.0174, "lon": 55.0065 },
+      "coordinates": { "x": 2750, "y": 1950 },
+      "majorExports": ["refined_petroleum", "aluminum", "plastics", "dates", "re_exports"],
+      "majorImports": ["electronics", "machinery", "automobiles", "textiles", "food"],
+      "capacity": 16000,
+      "efficiency": 0.92,
+      "infrastructure": {
+        "docks": 67,
+        "cranes": 115,
+        "warehouses": 35,
+        "railConnections": false,
+        "deepWaterAccess": true
+      },
+      "economicModifiers": {
+        "refined_petroleum": 0.75,
+        "aluminum": 0.8,
+        "electronics": 1.25,
+        "machinery": 1.2
+      }
+    },
+    {
+      "id": "port-klang",
+      "name": "Port Klang",
+      "country": "MY",
+      "countryName": "Malaysia",
+      "realWorldTEU": 14350000,
+      "location": { "lat": 3.0000, "lon": 101.4000 },
+      "coordinates": { "x": 3410, "y": 2400 },
+      "majorExports": ["palm_oil", "rubber", "electronics", "petroleum", "chemicals"],
+      "majorImports": ["machinery", "electronics", "iron_ore", "chemicals", "plastics"],
+      "capacity": 15000,
+      "efficiency": 0.88,
+      "infrastructure": {
+        "docks": 45,
+        "cranes": 100,
+        "warehouses": 30,
+        "railConnections": true,
+        "deepWaterAccess": true
+      },
+      "economicModifiers": {
+        "palm_oil": 0.7,
+        "rubber": 0.75,
+        "electronics": 0.9,
+        "machinery": 1.2
+      }
+    },
+    {
+      "id": "port-rotterdam",
+      "name": "Port of Rotterdam",
+      "country": "NL",
+      "countryName": "Netherlands",
+      "realWorldTEU": 15300000,
+      "location": { "lat": 51.9225, "lon": 4.4792 },
+      "coordinates": { "x": 2190, "y": 1480 },
+      "majorExports": ["refined_petroleum", "chemicals", "machinery", "food", "flowers"],
+      "majorImports": ["crude_petroleum", "iron_ore", "coal", "grains", "containers"],
+      "capacity": 16000,
+      "efficiency": 0.95,
+      "infrastructure": {
+        "docks": 90,
+        "cranes": 200,
+        "warehouses": 50,
+        "railConnections": true,
+        "deepWaterAccess": true
+      },
+      "economicModifiers": {
+        "refined_petroleum": 0.8,
+        "chemicals": 0.85,
+        "flowers": 0.7,
+        "crude_petroleum": 1.2
+      }
+    },
+    {
+      "id": "port-hong-kong",
+      "name": "Port of Hong Kong",
+      "country": "HK",
+      "countryName": "Hong Kong",
+      "realWorldTEU": 13140000,
+      "location": { "lat": 22.3193, "lon": 114.1694 },
+      "coordinates": { "x": 3590, "y": 1990 },
+      "majorExports": ["electronics", "textiles", "watches", "toys", "re_exports"],
+      "majorImports": ["electronics", "machinery", "food", "textiles", "plastics"],
+      "capacity": 14000,
+      "efficiency": 0.93,
+      "infrastructure": {
+        "docks": 24,
+        "cranes": 76,
+        "warehouses": 20,
+        "railConnections": false,
+        "deepWaterAccess": true
+      },
+      "economicModifiers": {
+        "electronics": 0.85,
+        "textiles": 0.9,
+        "watches": 0.75,
+        "machinery": 1.15
+      }
+    },
+    {
+      "id": "port-antwerp-bruges",
+      "name": "Port of Antwerp-Bruges",
+      "country": "BE",
+      "countryName": "Belgium",
+      "realWorldTEU": 14500000,
+      "location": { "lat": 51.2194, "lon": 4.4025 },
+      "coordinates": { "x": 2185, "y": 1490 },
+      "majorExports": ["chemicals", "automobiles", "steel", "machinery", "diamonds"],
+      "majorImports": ["crude_petroleum", "chemicals", "machinery", "food", "containers"],
+      "capacity": 15000,
+      "efficiency": 0.92,
+      "infrastructure": {
+        "docks": 120,
+        "cranes": 180,
+        "warehouses": 60,
+        "railConnections": true,
+        "deepWaterAccess": true
+      },
+      "economicModifiers": {
+        "chemicals": 0.8,
+        "automobiles": 0.85,
+        "diamonds": 0.7,
+        "crude_petroleum": 1.2
+      }
+    },
+    {
+      "id": "port-tanjung-pelepas",
+      "name": "Port of Tanjung Pelepas",
+      "country": "MY",
+      "countryName": "Malaysia",
+      "realWorldTEU": 11200000,
+      "location": { "lat": 1.3648, "lon": 103.5518 },
+      "coordinates": { "x": 3440, "y": 2445 },
+      "majorExports": ["palm_oil", "rubber", "electronics", "petroleum", "timber"],
+      "majorImports": ["machinery", "electronics", "chemicals", "steel", "textiles"],
+      "capacity": 12000,
+      "efficiency": 0.90,
+      "infrastructure": {
+        "docks": 14,
+        "cranes": 46,
+        "warehouses": 18,
+        "railConnections": false,
+        "deepWaterAccess": true
+      },
+      "economicModifiers": {
+        "palm_oil": 0.7,
+        "rubber": 0.75,
+        "timber": 0.8,
+        "machinery": 1.2
+      }
+    },
+    {
+      "id": "port-xiamen",
+      "name": "Port of Xiamen",
+      "country": "CN",
+      "countryName": "China",
+      "realWorldTEU": 12050000,
+      "location": { "lat": 24.4798, "lon": 118.0894 },
+      "coordinates": { "x": 3620, "y": 1940 },
+      "majorExports": ["electronics", "textiles", "machinery", "stone", "chemicals"],
+      "majorImports": ["iron_ore", "coal", "grains", "electronics", "timber"],
+      "capacity": 13000,
+      "efficiency": 0.88,
+      "infrastructure": {
+        "docks": 81,
+        "cranes": 146,
+        "warehouses": 40,
+        "railConnections": true,
+        "deepWaterAccess": true
+      },
+      "economicModifiers": {
+        "electronics": 0.85,
+        "textiles": 0.8,
+        "stone": 0.75,
+        "iron_ore": 1.25
+      }
+    },
+    {
+      "id": "port-los-angeles",
+      "name": "Port of Los Angeles",
+      "country": "US",
+      "countryName": "United States",
+      "realWorldTEU": 10700000,
+      "location": { "lat": 33.7406, "lon": -118.2706 },
+      "coordinates": { "x": 800, "y": 1810 },
+      "majorExports": ["recycled_materials", "animal_feed", "soybeans", "cotton", "chemicals"],
+      "majorImports": ["electronics", "furniture", "automobiles", "textiles", "machinery"],
+      "capacity": 11000,
+      "efficiency": 0.91,
+      "infrastructure": {
+        "docks": 25,
+        "cranes": 82,
+        "warehouses": 35,
+        "railConnections": true,
+        "deepWaterAccess": true
+      },
+      "economicModifiers": {
+        "recycled_materials": 0.8,
+        "soybeans": 0.85,
+        "electronics": 1.25,
+        "automobiles": 1.2
+      }
+    },
+    {
+      "id": "port-tanger-med",
+      "name": "Tanger Med Port",
+      "country": "MA",
+      "countryName": "Morocco",
+      "realWorldTEU": 8600000,
+      "location": { "lat": 35.8967, "lon": -5.4833 },
+      "coordinates": { "x": 2080, "y": 1760 },
+      "majorExports": ["phosphates", "automobiles", "textiles", "fish", "citrus"],
+      "majorImports": ["machinery", "petroleum", "electronics", "chemicals", "plastics"],
+      "capacity": 9000,
+      "efficiency": 0.89,
+      "infrastructure": {
+        "docks": 45,
+        "cranes": 90,
+        "warehouses": 25,
+        "railConnections": true,
+        "deepWaterAccess": true
+      },
+      "economicModifiers": {
+        "phosphates": 0.7,
+        "automobiles": 0.85,
+        "citrus": 0.75,
+        "machinery": 1.2
+      }
+    },
+    {
+      "id": "port-long-beach",
+      "name": "Port of Long Beach",
+      "country": "US",
+      "countryName": "United States",
+      "realWorldTEU": 9400000,
+      "location": { "lat": 33.7675, "lon": -118.1884 },
+      "coordinates": { "x": 805, "y": 1808 },
+      "majorExports": ["petroleum_coke", "chemicals", "recycled_materials", "cotton", "machinery"],
+      "majorImports": ["electronics", "automobiles", "furniture", "textiles", "plastics"],
+      "capacity": 10000,
+      "efficiency": 0.90,
+      "infrastructure": {
+        "docks": 22,
+        "cranes": 70,
+        "warehouses": 30,
+        "railConnections": true,
+        "deepWaterAccess": true
+      },
+      "economicModifiers": {
+        "petroleum_coke": 0.8,
+        "chemicals": 0.85,
+        "electronics": 1.25,
+        "automobiles": 1.2
+      }
+    },
+    {
+      "id": "port-laem-chabang",
+      "name": "Laem Chabang Port",
+      "country": "TH",
+      "countryName": "Thailand",
+      "realWorldTEU": 9530000,
+      "location": { "lat": 13.0856, "lon": 100.8776 },
+      "coordinates": { "x": 3400, "y": 2200 },
+      "majorExports": ["automobiles", "rice", "rubber", "electronics", "seafood"],
+      "majorImports": ["crude_petroleum", "machinery", "chemicals", "iron_ore", "electronics"],
+      "capacity": 10000,
+      "efficiency": 0.87,
+      "infrastructure": {
+        "docks": 37,
+        "cranes": 84,
+        "warehouses": 28,
+        "railConnections": true,
+        "deepWaterAccess": true
+      },
+      "economicModifiers": {
+        "automobiles": 0.8,
+        "rice": 0.7,
+        "rubber": 0.75,
+        "crude_petroleum": 1.25
+      }
+    },
+    {
+      "id": "port-kaohsiung",
+      "name": "Port of Kaohsiung",
+      "country": "TW",
+      "countryName": "Taiwan",
+      "realWorldTEU": 9870000,
+      "location": { "lat": 22.6146, "lon": 120.2863 },
+      "coordinates": { "x": 3640, "y": 1975 },
+      "majorExports": ["electronics", "petrochemicals", "machinery", "steel", "plastics"],
+      "majorImports": ["crude_petroleum", "coal", "iron_ore", "machinery", "chemicals"],
+      "capacity": 10500,
+      "efficiency": 0.91,
+      "infrastructure": {
+        "docks": 119,
+        "cranes": 156,
+        "warehouses": 45,
+        "railConnections": false,
+        "deepWaterAccess": true
+      },
+      "economicModifiers": {
+        "electronics": 0.8,
+        "petrochemicals": 0.85,
+        "machinery": 0.9,
+        "crude_petroleum": 1.25
+      }
+    }
+  ],
+  "portTypes": {
+    "mega": {
+      "minTEU": 30000000,
+      "description": "Mega ports handling over 30 million TEU annually",
+      "bonuses": {
+        "efficiency": 0.15,
+        "capacity": 0.2
+      }
+    },
+    "large": {
+      "minTEU": 15000000,
+      "description": "Large international ports",
+      "bonuses": {
+        "efficiency": 0.1,
+        "capacity": 0.15
+      }
+    },
+    "medium": {
+      "minTEU": 8000000,
+      "description": "Medium regional ports",
+      "bonuses": {
+        "efficiency": 0.05,
+        "capacity": 0.1
+      }
+    },
+    "small": {
+      "minTEU": 0,
+      "description": "Small local ports",
+      "bonuses": {
+        "efficiency": 0,
+        "capacity": 0
+      }
+    }
+  }
+}

@@ -16,8 +16,9 @@ const customJestConfig = {
     '^@/components/(.*)$': '<rootDir>/app/components/$1',
     '^@/lib/(.*)$': '<rootDir>/lib/$1',
     '^@/types/(.*)$': '<rootDir>/types/$1',
-    '^@/store/(.*)$': '<rootDir>/store/$1',
-    '^@/hooks/(.*)$': '<rootDir>/hooks/$1',
+    '^@/store/(.*)$': '<rootDir>/app/store/$1',
+    '^@/hooks/(.*)$': '<rootDir>/app/hooks/$1',
+    '^immer$': '<rootDir>/node_modules/immer/dist/immer.cjs.js',
   },
   testMatch: [
     '**/__tests__/**/*.(ts|tsx|js)',
