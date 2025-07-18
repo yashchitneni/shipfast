@@ -6,11 +6,12 @@ import { Button } from '../ui/Button';
 import { useEmpireStore } from '@/src/store/empireStore';
 import { useMarketStore } from '@/app/store/useMarketStore';
 // Removed local price fluctuation - using Supabase Realtime instead
-import { InventorySection } from '../inventory/InventorySection';
+import { OptimisticInventorySection } from '../inventory/OptimisticInventorySection';
 import { InventoryStatus } from './InventoryStatus';
 import { toast } from '../ui/Toast';
 import { GoodsCategory } from '@/types/market';
 import { inventoryService } from '@/lib/supabase/inventory';
+import { MarketItemSkeleton } from '../ui/SkeletonLoader';
 
 export const MarketTradingPanel: React.FC = () => {
   const { player, updatePlayerCash } = useEmpireStore();
@@ -36,13 +37,18 @@ export const MarketTradingPanel: React.FC = () => {
   const [playerInventory, setPlayerInventory] = useState<Map<string, number>>(new Map());
   const [isProcessing, setIsProcessing] = useState<'buy' | 'sell' | null>(null);
   const [useOptimisticUI, setUseOptimisticUI] = useState(true); // Toggle for testing
+  const [inventoryLoading, setInventoryLoading] = useState(true);
 
   // Price fluctuation now handled by Supabase Realtime - all players see same prices
 
   // Load player inventory
   const loadPlayerInventory = async () => {
-    if (!player) return;
+    if (!player) {
+      setInventoryLoading(false);
+      return;
+    }
     
+    setInventoryLoading(true);
     try {
       const inventory = await inventoryService.getInventoryAtLocation(player.id, 'port-1');
       const inventoryMap = new Map<string, number>();
@@ -52,6 +58,8 @@ export const MarketTradingPanel: React.FC = () => {
       setPlayerInventory(inventoryMap);
     } catch (error) {
       console.error('Failed to load player inventory:', error);
+    } finally {
+      setInventoryLoading(false);
     }
   };
 
@@ -63,19 +71,50 @@ export const MarketTradingPanel: React.FC = () => {
     });
   }, [initializeMarket]);
   
-  // Load inventory on mount and when player changes
+  // Load inventory when market items are available
   useEffect(() => {
-    loadPlayerInventory();
-  }, [player]);
+    if (player && items.size > 0 && !isLoading) {
+      const loadOptimizedInventory = async () => {
+        setInventoryLoading(true);
+        try {
+          const itemIds = Array.from(items.keys());
+          const inventoryCounts = await inventoryService.getInventoryCounts(
+            player.id, 
+            'port-1', 
+            itemIds
+          );
+          setPlayerInventory(inventoryCounts);
+        } catch (error) {
+          console.error('Failed to load inventory counts:', error);
+        } finally {
+          setInventoryLoading(false);
+        }
+      };
+      
+      loadOptimizedInventory();
+    }
+  }, [player, items, isLoading]);
   
   // Reload inventory when transactions complete
   useEffect(() => {
-    const unsubscribe = onTransactionComplete(() => {
-      loadPlayerInventory();
+    const unsubscribe = onTransactionComplete(async () => {
+      if (player && items.size > 0) {
+        try {
+          const itemIds = Array.from(items.keys());
+          const inventoryCounts = await inventoryService.getInventoryCounts(
+            player.id, 
+            'port-1', 
+            itemIds
+          );
+          setPlayerInventory(inventoryCounts);
+        } catch (error) {
+          console.error('Failed to reload inventory counts:', error);
+        }
+      }
     });
     
     return unsubscribe;
-  }, [onTransactionComplete]);
+  }, [onTransactionComplete, player, items]);
 
   // Get filtered items from store
   const marketItems = selectedCategory === 'all' 
@@ -245,7 +284,7 @@ export const MarketTradingPanel: React.FC = () => {
   return (
     <div className="h-full flex flex-col">
       {/* Player Inventory */}
-      <InventorySection />
+      <OptimisticInventorySection optimisticInventory={playerInventory} />
       
       <Panel title="Market Trading" className="mb-4">
         {/* Category Filter */}
@@ -303,10 +342,8 @@ export const MarketTradingPanel: React.FC = () => {
         </div>
 
         {/* Market Items Grid */}
-        {isLoading ? (
-          <div className="flex items-center justify-center h-80">
-            <div className="text-gray-500">Loading market data...</div>
-          </div>
+        {isLoading || inventoryLoading ? (
+          <MarketItemSkeleton />
         ) : error ? (
           <div className="flex items-center justify-center h-80">
             <div className="text-red-500">{error}</div>
@@ -335,9 +372,7 @@ export const MarketTradingPanel: React.FC = () => {
                             {item.category ? item.category.toLowerCase().replace('_', ' ') : 'uncategorized'}
                           </span>
                           <InventoryStatus 
-                            itemId={item.id} 
-                            locationId="port-1"
-                            optimisticQuantity={playerInventory.get(item.id) || 0}
+                            quantity={playerInventory.get(item.id) || 0}
                           />
                         </div>
                       </div>

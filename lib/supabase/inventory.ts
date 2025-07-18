@@ -39,6 +39,37 @@ export const inventoryService = {
     }
   },
 
+  // Get inventory counts for specific items at a location (optimized for market display)
+  async getInventoryCounts(
+    playerId: string,
+    locationId: string,
+    itemIds: string[]
+  ): Promise<Map<string, number>> {
+    try {
+      const { data, error } = await supabase
+        .from('player_inventory')
+        .select('item_id, quantity')
+        .eq('player_id', playerId)
+        .eq('location_id', locationId)
+        .in('item_id', itemIds);
+
+      if (error) {
+        console.error('Error fetching inventory counts:', error);
+        return new Map();
+      }
+
+      const countsMap = new Map<string, number>();
+      data?.forEach(item => {
+        countsMap.set(item.item_id, item.quantity);
+      });
+
+      return countsMap;
+    } catch (error) {
+      console.error('Error in getInventoryCounts:', error);
+      return new Map();
+    }
+  },
+
   // Get inventory at a specific location
   async getInventoryAtLocation(
     playerId: string, 

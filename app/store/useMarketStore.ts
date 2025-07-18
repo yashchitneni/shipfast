@@ -395,9 +395,6 @@ export const useMarketStore = create<MarketStore>()(
           // Track this optimistic update
           state.optimisticUpdates.set(optimisticTransaction.id, rollbackState);
           
-          // Notify immediately for instant UI update
-          get().notifyTransactionComplete();
-          
           try {
             // Send to server
             const serverTransaction = await marketService.buyItem(itemId, quantity, playerId, item.currentPrice);
@@ -412,6 +409,9 @@ export const useMarketStore = create<MarketStore>()(
               
               // Clean up optimistic update tracking
               state.optimisticUpdates.delete(optimisticTransaction.id);
+              
+              // Notify AFTER server confirms
+              get().notifyTransactionComplete();
               
               return serverTransaction;
             } else {
@@ -485,9 +485,6 @@ export const useMarketStore = create<MarketStore>()(
           // Track this optimistic update
           state.optimisticUpdates.set(optimisticTransaction.id, rollbackState);
           
-          // Notify immediately for instant UI update
-          get().notifyTransactionComplete();
-          
           try {
             // Send to server
             const serverTransaction = await marketService.sellItem(itemId, quantity, playerId, 'port-1', item.currentPrice);
@@ -502,6 +499,9 @@ export const useMarketStore = create<MarketStore>()(
               
               // Clean up optimistic update tracking
               state.optimisticUpdates.delete(optimisticTransaction.id);
+              
+              // Notify AFTER server confirms
+              get().notifyTransactionComplete();
               
               return serverTransaction;
             } else {
