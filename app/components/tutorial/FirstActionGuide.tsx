@@ -9,7 +9,7 @@ export const FirstActionGuide: React.FC = () => {
   const [dismissed, setDismissed] = useState(false);
 
   // Only show for new players with starting cash
-  if (!player || player.cash !== 50000 || dismissed) {
+  if (!player || player.cash !== 1000000 || dismissed) {
     return null;
   }
 
@@ -18,7 +18,7 @@ export const FirstActionGuide: React.FC = () => {
       <h3 className="text-xl font-bold mb-3">🎯 Welcome to Maritime Trading!</h3>
       
       <div className="space-y-3 text-sm">
-        <p>✅ <strong>You start with $50,000 and free goods!</strong></p>
+        <p>✅ <strong>You start with $1,000,000 and free goods!</strong></p>
         
         <div className="bg-blue-700 p-3 rounded">
           <p className="font-semibold mb-1">Your First Trade:</p>

@@ -10,7 +10,7 @@ type Json = Database['public']['Tables']['asset']['Row']['stats'];
 export class AssetService {
   private supabase = createClient();
 
-  async ensurePlayerExists(userId: string, username: string = 'Captain', initialCash: number = 50000): Promise<{ success: boolean; error: any }> {
+  async ensurePlayerExists(userId: string, username: string = 'Captain', initialCash: number = 1000000): Promise<{ success: boolean; error: any }> {
     try {
       console.log('🔍 Checking if player exists:', userId);
       

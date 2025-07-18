@@ -144,8 +144,17 @@ export default class WorldMapScene extends Phaser.Scene {
       // Now create the visual tiles
       this.isometricMap.create();
       
+      // Add both map containers to the scene
+      const containers = this.isometricMap.getContainers();
+      this.add.existing(containers.tiles);
+      this.add.existing(containers.sprites);
+      
       // Set up camera
       this.setupCamera();
+      
+      // Initialize sprite visibility based on initial zoom
+      this.isometricMap.updateZoom(CAMERA_CONFIG.initialZoom);
+      console.log(`[WorldMapScene] Initial zoom: ${CAMERA_CONFIG.initialZoom}`);
       
       // Create camera controller
       this.cameraController = new CameraController(this.cameras.main);
@@ -267,6 +276,10 @@ export default class WorldMapScene extends Phaser.Scene {
       }
       
       camera.setZoom(newZoom);
+      
+      // Update sprite visibility based on zoom
+      this.isometricMap.updateZoom(newZoom);
+      console.log(`[WorldMapScene] Zoom changed to: ${newZoom}`);
       
       // Emit zoom change event for UI synchronization
       camera.emit('zoomchange', newZoom);
@@ -919,6 +932,7 @@ export default class WorldMapScene extends Phaser.Scene {
       const newZoom = Math.min(CAMERA_CONFIG.zoomMax, currentZoom + CAMERA_CONFIG.zoomStep);
       
       camera.setZoom(newZoom);
+      this.isometricMap.updateZoom(newZoom);
       camera.emit('zoomchange', newZoom);
     });
     
@@ -928,6 +942,7 @@ export default class WorldMapScene extends Phaser.Scene {
       const newZoom = Math.max(CAMERA_CONFIG.zoomMin, currentZoom - CAMERA_CONFIG.zoomStep);
       
       camera.setZoom(newZoom);
+      this.isometricMap.updateZoom(newZoom);
       camera.emit('zoomchange', newZoom);
     });
     
@@ -936,6 +951,7 @@ export default class WorldMapScene extends Phaser.Scene {
       
       // Reset to world view with zoom level that shows the entire map
       camera.setZoom(CAMERA_CONFIG.initialZoom);
+      this.isometricMap.updateZoom(CAMERA_CONFIG.initialZoom);
       camera.centerOn(0, 0);
       camera.emit('zoomchange', CAMERA_CONFIG.initialZoom);
       

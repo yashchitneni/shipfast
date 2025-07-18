@@ -63,13 +63,33 @@ export const MarketTradingPanel: React.FC = () => {
     }
   };
 
-  // Initialize market on mount
+  // Initialize market on mount with cleanup
   useEffect(() => {
-    console.time('Market initialization total time');
-    initializeMarket().then(() => {
+    let mounted = true;
+    
+    const init = async () => {
+      if (!mounted) return;
+      
+      // Check if already initialized
+      if (items.size > 0) {
+        console.log('Market already initialized, skipping...');
+        return;
+      }
+      
+      console.time('Market initialization total time');
+      await initializeMarket();
       console.timeEnd('Market initialization total time');
-    });
-  }, [initializeMarket]);
+    };
+    
+    init();
+    
+    // Cleanup function to unsubscribe on unmount
+    return () => {
+      mounted = false;
+      // Unsubscribe from realtime updates when component unmounts
+      useMarketStore.getState().unsubscribeFromMarketUpdates();
+    };
+  }, []); // Remove initializeMarket from deps to prevent re-runs
   
   // Load inventory when market items are available
   useEffect(() => {

@@ -35,9 +35,18 @@ export class IsometricTileMap {
     connectedRoutes: string[];
   }> = [];
   
+  // Sprite management
+  private detailSprites: Phaser.GameObjects.Container;
+  private currentZoom: number = 1;
+  private readonly SPRITE_ZOOM_THRESHOLD = 0.5; // Show sprites when zoom >= 0.5
+  private landSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
+  private portSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
+  
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     this.tiles = scene.add.container(0, 0);
+    this.detailSprites = scene.add.container(0, 0);
+    this.detailSprites.setVisible(false); // Initially hidden
     this.imageProcessor = new ImageMapProcessor(scene, 'world-map', this.mapWidth, this.mapHeight);
   }
 
@@ -478,7 +487,7 @@ export class IsometricTileMap {
         const tile = this.tileData[y][x];
         const worldPos = this.tileToWorld(x, y);
         
-        // Create tile graphics
+        // Create tile graphics (always created for grid view)
         const tileGraphics = this.scene.add.graphics();
         
         // Draw tile based on type
@@ -496,6 +505,9 @@ export class IsometricTileMap {
         // Add to container
         tileGraphics.setPosition(worldPos.x, worldPos.y);
         this.tiles.add(tileGraphics);
+        
+        // Store tile data for sprite swapping
+        (tileGraphics as any).tileData = { x, y, type: tile.type };
         
         // Add interactive highlighting
         const hitArea = new Phaser.Geom.Polygon([
@@ -640,6 +652,131 @@ export class IsometricTileMap {
       y: minY,
       width: maxX - minX,
       height: maxY - minY
+    };
+  }
+  
+  /**
+   * Update zoom level and manage sprite visibility
+   * @param zoom Current camera zoom level
+   */
+  updateZoom(zoom: number): void {
+    this.currentZoom = zoom;
+    console.log(`[IsometricTileMap] Zoom updated to: ${zoom}, threshold: ${this.SPRITE_ZOOM_THRESHOLD}`);
+    
+    if (zoom >= this.SPRITE_ZOOM_THRESHOLD) {
+      // Show detailed sprites when zoomed in
+      if (!this.detailSprites.visible) {
+        console.log('[IsometricTileMap] Showing detailed sprites');
+        this.showDetailedSprites();
+      }
+    } else {
+      // Hide detailed sprites when zoomed out
+      if (this.detailSprites.visible) {
+        console.log('[IsometricTileMap] Hiding detailed sprites');
+        this.hideDetailedSprites();
+      }
+    }
+  }
+  
+  private showDetailedSprites(): void {
+    this.detailSprites.setVisible(true);
+    this.tiles.setAlpha(0.3); // Make grid semi-transparent
+    
+    // Create sprites for visible coastal areas if not already created
+    this.createCoastalSprites();
+    
+    console.log(`[IsometricTileMap] Detail sprites visible: ${this.detailSprites.visible}`);
+    console.log(`[IsometricTileMap] Total sprites in container: ${this.detailSprites.list.length}`);
+  }
+  
+  private hideDetailedSprites(): void {
+    this.detailSprites.setVisible(false);
+    this.tiles.setAlpha(1); // Make grid fully visible
+  }
+  
+  private createCoastalSprites(): void {
+    // Only create sprites in the visible area for performance
+    const camera = this.scene.cameras.main;
+    const bounds = camera.getBounds();
+    
+    console.log('[IsometricTileMap] Creating coastal sprites...');
+    console.log(`Camera bounds:`, bounds);
+    
+    // Convert world bounds to tile bounds
+    const topLeft = this.worldToTile(bounds.x, bounds.y);
+    const bottomRight = this.worldToTile(bounds.x + bounds.width, bounds.y + bounds.height);
+    
+    // Add some padding
+    const startX = Math.max(0, topLeft.x - 5);
+    const endX = Math.min(this.mapWidth - 1, bottomRight.x + 5);
+    const startY = Math.max(0, topLeft.y - 5);
+    const endY = Math.min(this.mapHeight - 1, bottomRight.y + 5);
+    
+    console.log(`Tile range: X[${startX}-${endX}], Y[${startY}-${endY}]`);
+    
+    for (let y = startY; y <= endY; y++) {
+      for (let x = startX; x <= endX; x++) {
+        const tile = this.tileData[y][x];
+        const key = `${x},${y}`;
+        
+        // Create land sprites for coastal areas
+        if (tile.type === 'land' && this.isCoastline(x, y) && !this.landSprites.has(key)) {
+          const worldPos = this.tileToWorld(x, y);
+          const sprite = this.scene.add.sprite(worldPos.x, worldPos.y - 20, 'land');
+          sprite.setOrigin(0.5, 0.75); // Adjust for isometric perspective
+          this.detailSprites.add(sprite);
+          this.landSprites.set(key, sprite);
+          console.log(`[IsometricTileMap] Created land sprite at tile [${x}, ${y}]`);
+        }
+        
+        // Create port sprites
+        if (tile.type === 'port' && !this.portSprites.has(key)) {
+          const worldPos = this.tileToWorld(x, y);
+          const sprite = this.scene.add.sprite(worldPos.x, worldPos.y - 30, 'crane');
+          sprite.setOrigin(0.5, 0.75);
+          sprite.setScale(0.8); // Slightly smaller to fit better
+          this.detailSprites.add(sprite);
+          this.portSprites.set(key, sprite);
+          console.log(`[IsometricTileMap] Created crane sprite at tile [${x}, ${y}]`);
+          
+          // Hide the grid tiles where the crane is placed (2x2 area)
+          this.hideGridTilesAt(x, y, 2, 2);
+        }
+      }
+    }
+    
+    console.log(`[IsometricTileMap] Sprite creation complete:`);
+    console.log(`  - Land sprites created: ${this.landSprites.size}`);
+    console.log(`  - Port sprites created: ${this.portSprites.size}`);
+    console.log(`  - Total sprites in container: ${this.detailSprites.list.length}`);
+  }
+  
+  private hideGridTilesAt(x: number, y: number, width: number, height: number): void {
+    // Hide grid tiles under larger sprites
+    for (let dy = 0; dy < height; dy++) {
+      for (let dx = 0; dx < width; dx++) {
+        const tileX = x + dx;
+        const tileY = y + dy;
+        if (tileX < this.mapWidth && tileY < this.mapHeight) {
+          // Find and hide the grid tile at this position
+          const worldPos = this.tileToWorld(tileX, tileY);
+          this.tiles.list.forEach((child: any) => {
+            if (child.x === worldPos.x && child.y === worldPos.y) {
+              child.setVisible(false);
+            }
+          });
+        }
+      }
+    }
+  }
+  
+  /**
+   * Get containers for external access
+   */
+  getContainers(): { tiles: Phaser.GameObjects.Container; sprites: Phaser.GameObjects.Container } {
+    return {
+      tiles: this.tiles,
+      sprites: this.detailSprites
     };
   }
 } 

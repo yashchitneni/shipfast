@@ -55,15 +55,36 @@ export default class PreloaderScene extends Phaser.Scene {
   }
 
   private loadAssets(): void {
-    // Load placeholder assets for now
-    // In production, these would be actual asset files
+    // Load actual sprite assets
+    this.load.setPath('assets/sprites/');
     
-    // Create placeholder textures
-    this.load.on('filecomplete', () => {
-      // Asset loaded
+    // Load land and port sprites
+    this.load.image('land', 'land.png');
+    this.load.image('crane', 'crane.png');
+    
+    // Load container variations
+    this.load.image('containers-1', 'containers_1.png');
+    this.load.image('containers-2', 'containers_2.png');
+    this.load.image('containers-3', 'containers_3.png');
+    
+    // Load other sprites
+    this.load.image('cargo-plane', 'cargo_plane.png');
+    this.load.image('hurricane', 'hurricane.png');
+    
+    // Log when sprites are loaded
+    this.load.on('filecomplete', (key: string, type: string, data: any) => {
+      console.log(`[PreloaderScene] Loaded sprite: ${key}`);
     });
-
-    // Generate placeholder graphics for development
+    
+    // Log any load errors
+    this.load.on('loaderror', (file: any) => {
+      console.error(`[PreloaderScene] Failed to load: ${file.key}`, file);
+    });
+    
+    // Reset path
+    this.load.setPath('');
+    
+    // Keep placeholder assets as fallback
     this.createPlaceholderAssets();
   }
 

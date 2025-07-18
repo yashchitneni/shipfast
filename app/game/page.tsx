@@ -52,7 +52,7 @@ export default function GamePage() {
         id: playerId,
         username: 'Captain',
         email: 'captain@example.com',
-        cash: 50000,
+        cash: 1000000,
         level: 1,
         experience: 0,
         achievements: [],
@@ -85,7 +85,7 @@ export default function GamePage() {
         
         // Ensure player exists in database
         const { assetService } = await import('../../lib/supabase/assets');
-        const result = await assetService.ensurePlayerExists(playerId, 'Test Captain', 50000);
+        const result = await assetService.ensurePlayerExists(playerId, 'Test Captain', 1000000);
         
         if (result.success) {
           console.log('✅ Player initialized successfully');

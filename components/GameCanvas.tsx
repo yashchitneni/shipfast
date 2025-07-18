@@ -36,7 +36,7 @@ export default function GameCanvas() {
               id: 'player-1',
               username: 'Captain',
               email: 'captain@example.com',
-              cash: 50000,
+              cash: 1000000,
               level: 1,
               experience: 0,
               achievements: [],
