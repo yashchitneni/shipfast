@@ -170,7 +170,7 @@ export class ImageMapProcessor {
   }
 
   /**
-   * Generate strategic port locations along coastlines
+   * Generate strategic port locations from ports.json
    */
   private generatePorts(tileData: TileData[][]): Array<{
     id: string;
@@ -189,75 +189,48 @@ export class ImageMapProcessor {
       connectedRoutes: string[];
     }> = [];
     
-    // Define strategic port locations based on the pixel art map
-    // Coordinates adjusted for 400x200 tile map from 1024x512 image
-    const portLocations = [
-      // North America
-      { name: 'New York', region: 'North America', x: 90, y: 60, capacity: 1000 },
-      { name: 'Los Angeles', region: 'North America', x: 50, y: 70, capacity: 800 },
-      { name: 'Vancouver', region: 'North America', x: 45, y: 50, capacity: 600 },
-      { name: 'Miami', region: 'North America', x: 95, y: 85, capacity: 700 },
-      { name: 'Houston', region: 'North America', x: 80, y: 80, capacity: 900 },
-      
-      // South America
-      { name: 'Santos', region: 'South America', x: 95, y: 140, capacity: 800 },
-      { name: 'Buenos Aires', region: 'South America', x: 90, y: 160, capacity: 700 },
-      { name: 'Valparaiso', region: 'South America', x: 75, y: 155, capacity: 500 },
-      { name: 'Cartagena', region: 'South America', x: 75, y: 95, capacity: 600 },
-      
-      // Europe
-      { name: 'Rotterdam', region: 'Europe', x: 155, y: 40, capacity: 1200 },
-      { name: 'Hamburg', region: 'Europe', x: 160, y: 38, capacity: 1000 },
-      { name: 'Antwerp', region: 'Europe', x: 154, y: 42, capacity: 900 },
-      { name: 'Le Havre', region: 'Europe', x: 150, y: 45, capacity: 700 },
-      { name: 'Barcelona', region: 'Europe', x: 152, y: 55, capacity: 600 },
-      
-      // Africa
-      { name: 'Lagos', region: 'Africa', x: 155, y: 95, capacity: 600 },
-      { name: 'Durban', region: 'Africa', x: 175, y: 140, capacity: 500 },
-      { name: 'Cape Town', region: 'Africa', x: 170, y: 150, capacity: 400 },
-      { name: 'Alexandria', region: 'Africa', x: 170, y: 75, capacity: 800 },
-      
-      // Middle East
-      { name: 'Dubai', region: 'Middle East', x: 190, y: 80, capacity: 1000 },
-      { name: 'Kuwait', region: 'Middle East', x: 185, y: 78, capacity: 700 },
-      
-      // Asia
-      { name: 'Shanghai', region: 'Asia', x: 280, y: 75, capacity: 1500 },
-      { name: 'Singapore', region: 'Asia', x: 260, y: 105, capacity: 1200 },
-      { name: 'Hong Kong', region: 'Asia', x: 275, y: 82, capacity: 1100 },
-      { name: 'Tokyo', region: 'Asia', x: 310, y: 65, capacity: 1000 },
-      { name: 'Busan', region: 'Asia', x: 295, y: 65, capacity: 900 },
-      { name: 'Mumbai', region: 'Asia', x: 215, y: 90, capacity: 800 },
-      { name: 'Kolkata', region: 'Asia', x: 230, y: 85, capacity: 700 },
-      { name: 'Vladivostok', region: 'Asia', x: 300, y: 30, capacity: 400 },
-      
-      // Australia & Oceania
-      { name: 'Sydney', region: 'Australia', x: 340, y: 150, capacity: 800 },
-      { name: 'Melbourne', region: 'Australia', x: 335, y: 155, capacity: 700 },
-      { name: 'Brisbane', region: 'Australia', x: 345, y: 140, capacity: 600 },
-      { name: 'Perth', region: 'Australia', x: 315, y: 150, capacity: 500 },
-      { name: 'Auckland', region: 'Oceania', x: 380, y: 165, capacity: 400 },
-    ];
+    // Load port data from JSON
+    const portData = this.scene.cache.json.get('port-data');
+    if (!portData || !portData.ports) {
+      console.warn('No port data found, using default locations');
+      return [];
+    }
     
-    // Filter ports to only include those that are near coastlines
-    portLocations.forEach((portInfo, index) => {
-      const x = Math.floor(portInfo.x);
-      const y = Math.floor(portInfo.y);
+    // Assuming the coordinates in ports.json are based on a ~4000x3000 map
+    // We need to scale them down to our 400x200 tile system
+    const scaleX = this.targetWidth / 4000;
+    const scaleY = this.targetHeight / 3000;
+    
+    console.log(`[ImageMapProcessor] Scaling ports from original coordinates to ${this.targetWidth}x${this.targetHeight} with scale ${scaleX}x${scaleY}`);
+    
+    // Process each port from the JSON data
+    portData.ports.forEach((port: any) => {
+      // Scale coordinates to our tile system
+      const originalX = port.coordinates.x;
+      const originalY = port.coordinates.y;
+      const scaledX = Math.floor(originalX * scaleX);
+      const scaledY = Math.floor(originalY * scaleY);
+      
+      console.log(`[ImageMapProcessor] Port ${port.name}: Original (${originalX}, ${originalY}) → Scaled (${scaledX}, ${scaledY})`);
       
       // Check if location is valid and near coast
-      if (this.isValidPortLocation(tileData, x, y)) {
+      if (this.isValidPortLocation(tileData, scaledX, scaledY)) {
         ports.push({
-          id: `port-${index + 1}`,
-          name: portInfo.name,
-          position: { x: portInfo.x, y: portInfo.y },
-          region: portInfo.region,
-          capacity: portInfo.capacity,
+          id: port.id,
+          name: port.name,
+          position: { x: scaledX, y: scaledY },
+          region: port.countryName || 'Unknown',
+          capacity: Math.floor(port.capacity / 100), // Scale capacity for game balance
           connectedRoutes: []
         });
+        
+        console.log(`[ImageMapProcessor] ✓ Added port: ${port.name} at (${scaledX}, ${scaledY})`);
+      } else {
+        console.log(`[ImageMapProcessor] ✗ Skipped port: ${port.name} - invalid location at (${scaledX}, ${scaledY})`);
       }
     });
     
+    console.log(`Generated ${ports.length} ports from JSON data`);
     return ports;
   }
 

@@ -4,24 +4,29 @@ import React, { useState, useEffect } from 'react';
 import { useEmpireStore } from '../../../src/store/empireStore';
 import { loadAllAssetDefinitions, getMockPortNodes } from '../../lib/assetLoader';
 import { AssetDefinition, AssetType, AssetCategory } from '../../lib/types/assets';
+import { PortSelectionModal } from './PortSelectionModal';
 
 export const AssetPlacementUI: React.FC = () => {
   const {
     assetDefinitions,
     loadAssetDefinitions,
     setPortNodes,
+    portNodes,
     player,
     setAssetToPlace,
     assetToPlace,
     getAssetStats,
     placedAssets,
-    updatePlayerCash
+    updatePlayerCash,
+    startAssetPreview
   } = useEmpireStore();
 
   const [selectedCategory, setSelectedCategory] = useState<AssetCategory | 'all'>('all');
   const [selectedType, setSelectedType] = useState<AssetType | 'all'>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [placementMessage, setPlacementMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [showPortSelection, setShowPortSelection] = useState(false);
+  const [selectedAssetDefinitionId, setSelectedAssetDefinitionId] = useState<string | null>(null);
 
   // Load assets on mount
   useEffect(() => {
@@ -36,12 +41,44 @@ export const AssetPlacementUI: React.FC = () => {
 
   // Handle asset selection
   const handleSelectAsset = (definitionId: string) => {
-    // Set the asset to place, which will be handled by the WorldMapScene
-    setAssetToPlace(definitionId);
-    setPlacementMessage({ text: 'Click on a port to place the asset', type: 'success' });
+    const definition = assetDefinitions.get(definitionId);
     
-    // Clear message after 3 seconds
-    setTimeout(() => setPlacementMessage(null), 3000);
+    // For ships, show port selection modal
+    if (definition && definition.type === 'ship') {
+      setSelectedAssetDefinitionId(definitionId);
+      setShowPortSelection(true);
+    } else {
+      // For non-ship assets, use the old behavior
+      setAssetToPlace(definitionId);
+      setPlacementMessage({ text: 'Click on a port to place the asset', type: 'success' });
+      
+      // Clear message after 3 seconds
+      setTimeout(() => setPlacementMessage(null), 3000);
+    }
+  };
+
+  // Handle port selection
+  const handlePortSelection = (portId: string) => {
+    if (selectedAssetDefinitionId) {
+      const port = portNodes.get(portId);
+      if (port) {
+        // Start preview at the selected port
+        startAssetPreview(selectedAssetDefinitionId, port.position);
+        setAssetToPlace(selectedAssetDefinitionId);
+        setShowPortSelection(false);
+        setSelectedAssetDefinitionId(null);
+        setPlacementMessage({ text: `Ship will be placed at ${port.name}`, type: 'success' });
+        
+        // Clear message after 3 seconds
+        setTimeout(() => setPlacementMessage(null), 3000);
+      }
+    }
+  };
+
+  // Handle cancel port selection
+  const handleCancelPortSelection = () => {
+    setShowPortSelection(false);
+    setSelectedAssetDefinitionId(null);
   };
 
   // Handle cancel placement
@@ -198,6 +235,15 @@ export const AssetPlacementUI: React.FC = () => {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Port Selection Modal */}
+      {showPortSelection && selectedAssetDefinitionId && (
+        <PortSelectionModal
+          onSelectPort={handlePortSelection}
+          onCancel={handleCancelPortSelection}
+          assetType={assetDefinitions.get(selectedAssetDefinitionId)?.name || 'Ship'}
+        />
       )}
     </div>
   );

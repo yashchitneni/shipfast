@@ -124,7 +124,9 @@ export default function GameUI() {
       )}
       
       {/* First Action Tutorial */}
-      <FirstActionGuide />
+      <div className="pointer-events-auto">
+        <FirstActionGuide />
+      </div>
     </div>
   );
 }

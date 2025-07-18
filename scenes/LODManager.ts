@@ -30,7 +30,7 @@ export class LODManager {
   
   // Default configuration
   private readonly DEFAULT_CONFIG: LODConfig = {
-    detailThreshold: 1.5,
+    detailThreshold: 1.5,  // Show detail at 150% zoom
     simpleThreshold: 1.2,
     fadeTransition: true,
     cullingPadding: 200
@@ -65,6 +65,8 @@ export class LODManager {
       position: portData.coordinates || portData.position
     };
     
+    console.log(`[LODManager] Registering port ${portDetail.name} at (${portDetail.position.x}, ${portDetail.position.y})`);
+    
     const layer = new PortDetailLayer(this.scene, portDetail);
     this.portLayers.set(portData.id, layer);
   }
@@ -73,11 +75,20 @@ export class LODManager {
    * Register multiple ports at once
    */
   public registerPorts(portsData: any[]): void {
+    console.log(`[LODManager] Registering ${portsData.length} ports`);
+    
     // Register all ports
     portsData.forEach(port => this.registerPort(port));
     
     // Build spatial index after all ports are registered
     this.buildSpatialIndex();
+    
+    // Force initial update to show ports
+    console.log(`[LODManager] Current zoom: ${this.currentZoom}, Detail threshold: ${this.config.detailThreshold}`);
+    this.updateAllPortLOD();
+    
+    // Also update culling to ensure ports are visible in the current camera view
+    this.updateCulling();
   }
   
   /**
@@ -134,16 +145,22 @@ export class LODManager {
     
     this.isTransitioning = true;
     
+    console.log(`[LODManager] Updating all port LOD. Current zoom: ${this.currentZoom}, Port layers: ${this.portLayers.size}`);
+    
     this.portLayers.forEach((layer, portId) => {
       if (this.currentZoom >= this.config.detailThreshold) {
         // Switch to detail view
         if (!layer.isInDetailView()) {
           this.transitionToDetail(layer, portId);
         }
-      } else if (this.currentZoom < this.config.simpleThreshold) {
-        // Switch to simple view
+      } else {
+        // At low zoom, always show simple view
         if (layer.isInDetailView()) {
           this.transitionToSimple(layer, portId);
+        } else {
+          // Make sure simple view is visible
+          layer.setVisible(true);
+          layer.showSimple();
         }
       }
     });
@@ -363,7 +380,8 @@ export class LODManager {
       this.quadTree!.insert({ id, bounds });
     });
     
-    console.log(`Spatial index built with ${this.portLayers.size} ports`);
+    console.log(`[LODManager] Spatial index built with ${this.portLayers.size} ports`);
+    console.log(`[LODManager] World bounds: x=${this.worldBounds.x}, y=${this.worldBounds.y}, width=${this.worldBounds.width}, height=${this.worldBounds.height}`);
   }
   
   /**
@@ -377,10 +395,14 @@ export class LODManager {
       this.camera.height / this.camera.zoom + (this.config.cullingPadding * 2)
     );
     
+    console.log(`[LODManager] Camera bounds for culling: x=${cameraBounds.x}, y=${cameraBounds.y}, width=${cameraBounds.width}, height=${cameraBounds.height}`);
+    
     if (this.quadTree) {
       // Use quadtree for efficient culling
       const visiblePorts = this.quadTree.retrieve(cameraBounds);
       const visibleIds = new Set(visiblePorts.map(p => p.id));
+      
+      console.log(`[LODManager] Visible ports from quadtree: ${visiblePorts.length}`);
       
       // Update visibility based on quadtree results
       this.portLayers.forEach((layer, id) => {
@@ -389,6 +411,7 @@ export class LODManager {
       });
     } else {
       // Fallback to checking all ports
+      console.log(`[LODManager] Using fallback culling for ${this.portLayers.size} ports`);
       this.portLayers.forEach(layer => {
         layer.updateVisibility(cameraBounds);
       });

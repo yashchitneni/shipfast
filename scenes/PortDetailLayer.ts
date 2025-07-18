@@ -56,9 +56,11 @@ export class PortDetailLayer extends Phaser.GameObjects.Container {
    * Create simple port icon view (global zoom level)
    */
   private createSimpleView(): void {
-    // Simple golden port marker
-    this.portMarker = this.scene.add.circle(0, 0, 25, 0xFFD700, 0.8);
-    this.portMarker.setStrokeStyle(3, 0xFFFFFF);
+    // Simple golden port marker - smaller size
+    this.portMarker = this.scene.add.circle(0, 0, 15, 0xFFD700, 0.9);
+    this.portMarker.setStrokeStyle(2, 0xFFFFFF);
+    
+    console.log(`[PortDetailLayer] Creating port marker for ${this.portDetail.name} at world position (${this.x}, ${this.y})`);
     
     // Port name label
     const nameLabel = this.scene.add.text(0, -40, this.portDetail.name, {
@@ -71,6 +73,10 @@ export class PortDetailLayer extends Phaser.GameObjects.Container {
     
     // Add to container
     this.add([this.portMarker, nameLabel]);
+    
+    // Make sure the container is visible
+    this.setVisible(true);
+    this.setAlpha(1);
     
     // Make interactive
     this.portMarker.setInteractive({ useHandCursor: true });
@@ -92,82 +98,84 @@ export class PortDetailLayer extends Phaser.GameObjects.Container {
     this.removeAll(true);
     this.infrastructureSprites = [];
     
-    // Background water area for port
-    const waterArea = this.scene.add.rectangle(0, 0, 300, 250, this.WATER_COLOR, 0.2);
-    waterArea.setStrokeStyle(2, this.WATER_COLOR);
+    // Background water area for port - sized to match a tile (64x32)
+    const tileWidth = 64;
+    const tileHeight = 32;
+    const waterArea = this.scene.add.rectangle(0, 0, tileWidth, tileHeight, this.WATER_COLOR, 0.2);
+    waterArea.setStrokeStyle(1, this.WATER_COLOR);
     this.add(waterArea);
     
-    // Dock area
-    const dockWidth = Math.min(infra.docks * 2, 200);
-    const dockArea = this.scene.add.rectangle(-50, -80, dockWidth, 30, this.DOCK_COLOR, 0.7);
-    dockArea.setStrokeStyle(2, this.DOCK_COLOR);
+    // Dock area - scaled to fit within tile
+    const dockWidth = Math.min(infra.docks * 0.5, tileWidth * 0.7);
+    const dockArea = this.scene.add.rectangle(-tileWidth * 0.2, -tileHeight * 0.3, dockWidth, 8, this.DOCK_COLOR, 0.7);
+    dockArea.setStrokeStyle(1, this.DOCK_COLOR);
     this.add(dockArea);
     this.infrastructureSprites.push(dockArea);
     
-    // Individual docks
-    const docksPerRow = 10;
-    const dockSpacing = 18;
-    for (let i = 0; i < Math.min(infra.docks, 20); i++) {
+    // Individual docks - scaled down to fit within tile
+    const docksPerRow = 5;
+    const dockSpacing = 6;
+    for (let i = 0; i < Math.min(infra.docks, 5); i++) {
       const row = Math.floor(i / docksPerRow);
       const col = i % docksPerRow;
-      const x = -90 + col * dockSpacing;
-      const y = -75 + row * 15;
+      const x = -tileWidth * 0.3 + col * dockSpacing;
+      const y = -tileHeight * 0.2 + row * 4;
       
-      const dock = this.scene.add.rectangle(x, y, 15, 8, this.DOCK_COLOR);
-      dock.setStrokeStyle(1, 0xFFFFFF);
+      const dock = this.scene.add.rectangle(x, y, 4, 3, this.DOCK_COLOR);
+      dock.setStrokeStyle(0.5, 0xFFFFFF);
       this.add(dock);
       this.infrastructureSprites.push(dock);
     }
     
-    // Cranes
-    const cranesPerRow = 8;
-    const craneSpacing = 25;
-    for (let i = 0; i < Math.min(infra.cranes, 16); i++) {
+    // Cranes - scaled down
+    const cranesPerRow = 4;
+    const craneSpacing = 8;
+    for (let i = 0; i < Math.min(infra.cranes, 4); i++) {
       const row = Math.floor(i / cranesPerRow);
       const col = i % cranesPerRow;
-      const x = -85 + col * craneSpacing;
-      const y = -40 + row * 30;
+      const x = -tileWidth * 0.3 + col * craneSpacing;
+      const y = 0 + row * 8;
       
       // Crane base
-      const craneBase = this.scene.add.rectangle(x, y, 8, 8, this.CRANE_COLOR);
+      const craneBase = this.scene.add.rectangle(x, y, 3, 3, this.CRANE_COLOR);
       // Crane arm
-      const craneArm = this.scene.add.line(0, 0, x, y - 4, x + 15, y - 12, this.CRANE_COLOR, 1);
-      craneArm.setLineWidth(2);
+      const craneArm = this.scene.add.line(0, 0, x, y - 2, x + 5, y - 5, this.CRANE_COLOR, 1);
+      craneArm.setLineWidth(1);
       
       this.add([craneBase, craneArm]);
       this.infrastructureSprites.push(craneBase, craneArm);
     }
     
-    // Warehouses
-    const warehousesPerRow = 5;
-    const warehouseSpacing = 45;
-    for (let i = 0; i < Math.min(infra.warehouses, 10); i++) {
+    // Warehouses - scaled down
+    const warehousesPerRow = 3;
+    const warehouseSpacing = 12;
+    for (let i = 0; i < Math.min(infra.warehouses, 3); i++) {
       const row = Math.floor(i / warehousesPerRow);
       const col = i % warehousesPerRow;
-      const x = -90 + col * warehouseSpacing;
-      const y = 20 + row * 40;
+      const x = tileWidth * 0.1 + col * warehouseSpacing;
+      const y = -tileHeight * 0.1 + row * 10;
       
-      const warehouse = this.scene.add.rectangle(x, y, 35, 30, this.WAREHOUSE_COLOR, 0.7);
-      warehouse.setStrokeStyle(2, this.WAREHOUSE_COLOR);
+      const warehouse = this.scene.add.rectangle(x, y, 8, 6, this.WAREHOUSE_COLOR, 0.7);
+      warehouse.setStrokeStyle(1, this.WAREHOUSE_COLOR);
       
       // Warehouse roof
-      const roof = this.scene.add.triangle(x, y - 20, 0, 0, -20, 10, 20, 10, 0x5A8F29, 0.8);
+      const roof = this.scene.add.triangle(x, y - 4, 0, 0, -4, 2, 4, 2, 0x5A8F29, 0.8);
       
       this.add([warehouse, roof]);
       this.infrastructureSprites.push(warehouse, roof);
     }
     
-    // Rail connections
+    // Rail connections - scaled down
     if (infra.railConnections) {
-      const railY = 90;
-      const rail1 = this.scene.add.line(0, 0, -100, railY, 100, railY, this.RAIL_COLOR, 0.8);
-      rail1.setLineWidth(3);
-      const rail2 = this.scene.add.line(0, 0, -100, railY + 5, 100, railY + 5, this.RAIL_COLOR, 0.8);
-      rail2.setLineWidth(3);
+      const railY = tileHeight * 0.4;
+      const rail1 = this.scene.add.line(0, 0, -tileWidth * 0.4, railY, tileWidth * 0.4, railY, this.RAIL_COLOR, 0.8);
+      rail1.setLineWidth(1);
+      const rail2 = this.scene.add.line(0, 0, -tileWidth * 0.4, railY + 2, tileWidth * 0.4, railY + 2, this.RAIL_COLOR, 0.8);
+      rail2.setLineWidth(1);
       
       // Rail ties
-      for (let i = -90; i <= 90; i += 20) {
-        const tie = this.scene.add.rectangle(i, railY + 2.5, 12, 8, 0x4A3C28, 0.6);
+      for (let i = -tileWidth * 0.3; i <= tileWidth * 0.3; i += 8) {
+        const tie = this.scene.add.rectangle(i, railY + 1, 3, 2, 0x4A3C28, 0.6);
         this.add(tie);
         this.infrastructureSprites.push(tie);
       }
@@ -176,13 +184,13 @@ export class PortDetailLayer extends Phaser.GameObjects.Container {
       this.infrastructureSprites.push(rail1, rail2);
     }
     
-    // Deep water access indicator
+    // Deep water access indicator - scaled down
     if (infra.deepWaterAccess) {
-      const deepWaterIcon = this.scene.add.circle(-120, -80, 15, 0x1E88E5, 0.8);
-      deepWaterIcon.setStrokeStyle(2, 0x0D47A1);
+      const deepWaterIcon = this.scene.add.circle(-tileWidth * 0.4, -tileHeight * 0.3, 5, 0x1E88E5, 0.8);
+      deepWaterIcon.setStrokeStyle(1, 0x0D47A1);
       
-      const anchorIcon = this.scene.add.text(-120, -80, '⚓', {
-        fontSize: '16px',
+      const anchorIcon = this.scene.add.text(-tileWidth * 0.4, -tileHeight * 0.3, '⚓', {
+        fontSize: '8px',
         color: '#FFFFFF'
       });
       anchorIcon.setOrigin(0.5, 0.5);
@@ -191,25 +199,25 @@ export class PortDetailLayer extends Phaser.GameObjects.Container {
       this.infrastructureSprites.push(deepWaterIcon, anchorIcon);
     }
     
-    // Port name and details
-    const detailBg = this.scene.add.rectangle(0, -120, 250, 40, 0x000000, 0.8);
-    detailBg.setStrokeStyle(2, 0xFFD700);
+    // Port name and details - scaled down
+    const detailBg = this.scene.add.rectangle(0, -tileHeight * 0.7, tileWidth * 0.8, 12, 0x000000, 0.8);
+    detailBg.setStrokeStyle(1, 0xFFD700);
     
-    this.detailText = this.scene.add.text(0, -120, this.portDetail.name, {
-      fontSize: '18px',
+    this.detailText = this.scene.add.text(0, -tileHeight * 0.7, this.portDetail.name, {
+      fontSize: '10px',
       fontStyle: 'bold',
       color: '#FFD700',
       align: 'center'
     });
     this.detailText.setOrigin(0.5, 0.5);
     
-    const statsText = this.scene.add.text(0, 120, 
-      `Docks: ${infra.docks} | Cranes: ${infra.cranes} | Warehouses: ${infra.warehouses}`,
+    const statsText = this.scene.add.text(0, tileHeight * 0.7, 
+      `D:${infra.docks} C:${infra.cranes} W:${infra.warehouses}`,
       {
-        fontSize: '12px',
+        fontSize: '8px',
         color: '#FFFFFF',
         backgroundColor: 'rgba(0,0,0,0.7)',
-        padding: { x: 10, y: 5 }
+        padding: { x: 4, y: 2 }
       }
     );
     statsText.setOrigin(0.5, 0.5);

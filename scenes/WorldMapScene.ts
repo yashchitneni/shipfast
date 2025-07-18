@@ -124,7 +124,7 @@ export default class WorldMapScene extends Phaser.Scene {
     this.load.image('world-map', '/world-map.png');
     
     // Load port data
-    this.load.json('port-data', 'app/assets/definitions/ports.json');
+    this.load.json('port-data', '/assets/definitions/ports.json');
     
     // Note: Ship assets will be loaded when available
     // For now, the LOD system will use placeholder graphics
@@ -625,26 +625,39 @@ export default class WorldMapScene extends Phaser.Scene {
   private updateGhostPosition(pointer: Phaser.Input.Pointer): void {
     if (!this.ghostSprite) return;
     
-    const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-    this.ghostSprite.setPosition(worldPoint.x, worldPoint.y);
-    
-    // Check if near a port
     const store = useEmpireStore.getState();
-    const snapPort = store.checkPortSnap({ x: worldPoint.x, y: worldPoint.y }, 100);
     
-    // Update visual feedback
-    this.validPlacementIndicator.clear();
-    
-    if (snapPort) {
-      // Snap to port position
-      this.ghostSprite.setPosition(snapPort.position.x, snapPort.position.y);
+    // If we have an asset preview (from port selection), position at that port
+    if (store.assetPreview) {
+      this.ghostSprite.setPosition(store.assetPreview.position.x, store.assetPreview.position.y);
       this.ghostSprite.setTint(0x00FF00); // Green for valid placement
       
-      // Draw a circle around the port to indicate valid placement
+      // Update visual feedback
+      this.validPlacementIndicator.clear();
       this.validPlacementIndicator.lineStyle(3, 0x00FF00, 0.8);
-      this.validPlacementIndicator.strokeCircle(snapPort.position.x, snapPort.position.y, 50);
+      this.validPlacementIndicator.strokeCircle(store.assetPreview.position.x, store.assetPreview.position.y, 50);
     } else {
-      this.ghostSprite.setTint(0xFF0000); // Red for invalid placement
+      // Original behavior for non-ship assets
+      const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+      this.ghostSprite.setPosition(worldPoint.x, worldPoint.y);
+      
+      // Check if near a port
+      const snapPort = store.checkPortSnap({ x: worldPoint.x, y: worldPoint.y }, 100);
+      
+      // Update visual feedback
+      this.validPlacementIndicator.clear();
+      
+      if (snapPort) {
+        // Snap to port position
+        this.ghostSprite.setPosition(snapPort.position.x, snapPort.position.y);
+        this.ghostSprite.setTint(0x00FF00); // Green for valid placement
+        
+        // Draw a circle around the port to indicate valid placement
+        this.validPlacementIndicator.lineStyle(3, 0x00FF00, 0.8);
+        this.validPlacementIndicator.strokeCircle(snapPort.position.x, snapPort.position.y, 50);
+      } else {
+        this.ghostSprite.setTint(0xFF0000); // Red for invalid placement
+      }
     }
   }
   
@@ -660,13 +673,10 @@ export default class WorldMapScene extends Phaser.Scene {
     
     const store = useEmpireStore.getState();
     const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-    const snapPort = store.checkPortSnap({ x: worldPoint.x, y: worldPoint.y }, 100);
     
-    if (snapPort && store.assetToPlace) {
-      // Start the preview at the port position
-      store.startAssetPreview(store.assetToPlace, snapPort.position);
-      
-      // Place the asset
+    // Check if we already have a preview (from port selection)
+    if (store.assetPreview) {
+      // Asset is already positioned at the selected port, just place it
       store.placeAsset().then((result) => {
         if (result.success) {
           console.log('Asset placed successfully!');
@@ -675,6 +685,24 @@ export default class WorldMapScene extends Phaser.Scene {
           console.error('Failed to place asset:', result.error);
         }
       });
+    } else {
+      // Original snap-to-port behavior for non-ship assets
+      const snapPort = store.checkPortSnap({ x: worldPoint.x, y: worldPoint.y }, 100);
+      
+      if (snapPort && store.assetToPlace) {
+        // Start the preview at the port position
+        store.startAssetPreview(store.assetToPlace, snapPort.position);
+        
+        // Place the asset
+        store.placeAsset().then((result) => {
+          if (result.success) {
+            console.log('Asset placed successfully!');
+            store.setAssetToPlace(null);
+          } else {
+            console.error('Failed to place asset:', result.error);
+          }
+        });
+      }
     }
   }
 
@@ -747,8 +775,26 @@ export default class WorldMapScene extends Phaser.Scene {
     // Load port data from JSON
     const portData = this.cache.json.get('port-data');
     if (portData && portData.ports) {
-      // Register ports with LOD manager
-      this.lodManager.registerPorts(portData.ports);
+      // Convert ports to world coordinates before registering with LOD manager
+      const portsWithWorldCoords = portData.ports.map((port: any) => {
+        // Scale from 4000x3000 to 400x200 tile system
+        const scaleX = 400 / 4000;
+        const scaleY = 200 / 3000;
+        const tileX = Math.floor(port.coordinates.x * scaleX);
+        const tileY = Math.floor(port.coordinates.y * scaleY);
+        
+        // Convert to world coordinates
+        const worldPos = this.isometricMap.tileToWorld(tileX, tileY);
+        
+        return {
+          ...port,
+          coordinates: worldPos,
+          position: worldPos
+        };
+      });
+      
+      // Register ports with LOD manager using world coordinates
+      this.lodManager.registerPorts(portsWithWorldCoords);
       
       // Convert port data for store
       const worldPortNodes: Array<{
@@ -761,10 +807,20 @@ export default class WorldMapScene extends Phaser.Scene {
       }> = [];
       
       portData.ports.forEach((port: any) => {
+        // The coordinates from ports.json are in the 4000x3000 system
+        // We need to scale them to our 400x200 tile system
+        const scaleX = 400 / 4000;
+        const scaleY = 200 / 3000;
+        const tileX = Math.floor(port.coordinates.x * scaleX);
+        const tileY = Math.floor(port.coordinates.y * scaleY);
+        
+        // Convert tile coordinates to world coordinates
+        const worldPos = this.isometricMap.tileToWorld(tileX, tileY);
+        
         const worldPortNode = {
           id: port.id,
           name: port.name,
-          position: port.coordinates || { x: 0, y: 0 },
+          position: worldPos,
           region: port.countryName || 'Unknown',
           capacity: port.capacity || 100,
           connectedRoutes: []
@@ -774,7 +830,13 @@ export default class WorldMapScene extends Phaser.Scene {
       });
       
       // Register all ports with the empire store
-      console.log(`Loaded ${worldPortNodes.length} ports from data`);
+      console.log(`[WorldMapScene] Loaded ${worldPortNodes.length} ports from JSON data`);
+      console.log(`[WorldMapScene] Sample ports:`, worldPortNodes.slice(0, 3).map(p => `${p.name} at (${p.position.x}, ${p.position.y})`));
+      
+      // Log camera bounds for debugging
+      const camera = this.cameras.main;
+      console.log(`[WorldMapScene] Camera bounds: x=${camera.scrollX}, y=${camera.scrollY}, width=${camera.width}, height=${camera.height}, zoom=${camera.zoom}`);
+      
       store.setPortNodes(worldPortNodes);
       
       // Load any placed assets for ports
@@ -825,7 +887,7 @@ export default class WorldMapScene extends Phaser.Scene {
       });
       
       // Register all found ports with the empire store
-      console.log(`Found ${worldPortNodes.length} ports in the map`);
+      console.log(`[WorldMapScene] Found ${worldPortNodes.length} ports in the map`);
       store.setPortNodes(worldPortNodes);
     }
   }
@@ -875,11 +937,25 @@ export default class WorldMapScene extends Phaser.Scene {
     this.cameraController.panTo(portNode.position.x, portNode.position.y);
     this.cameraController.zoomTo(1.5);
     
+    // Show land sprite at this specific port location
+    this.showLandSpriteAtPort(portNode);
+    
     // Emit event for UI to show port management panel
     this.events.emit('port-focused', portNode);
     
     // Store the focused port in the empire store
     store.setSelectedPort(portNode.id);
+  }
+  
+  /**
+   * @private
+   * @method showLandSpriteAtPort
+   * @description Placeholder method - sprites have been removed from the game
+   * @param {Object} portNode - The port node with position information
+   */
+  private showLandSpriteAtPort(portNode: { id: string; name: string; position: { x: number; y: number } }): void {
+    // Sprites have been removed - this method is now a no-op
+    // The tile-based aesthetic is maintained without additional sprites
   }
   
   private setupMinimap(): void {
@@ -1000,6 +1076,8 @@ export default class WorldMapScene extends Phaser.Scene {
     if (this.lodManager) {
       this.lodManager.destroy();
     }
+    
+    // Sprites have been removed - no cleanup needed
     
     // Clean up asset bridge
     assetBridge.destroy();
