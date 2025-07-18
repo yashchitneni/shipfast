@@ -7,43 +7,346 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          operationName?: string
-          query?: string
-          variables?: Json
-          extensions?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+  // Allows to automatically instanciate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
   }
   public: {
     Tables: {
+      ai_companions: {
+        Row: {
+          accuracy: number | null
+          created_at: string | null
+          experience: number
+          id: string
+          level: string
+          name: string
+          successful_suggestions: number
+          total_suggestions: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          accuracy?: number | null
+          created_at?: string | null
+          experience?: number
+          id?: string
+          level: string
+          name?: string
+          successful_suggestions?: number
+          total_suggestions?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          accuracy?: number | null
+          created_at?: string | null
+          experience?: number
+          id?: string
+          level?: string
+          name?: string
+          successful_suggestions?: number
+          total_suggestions?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_disaster_predictions: {
+        Row: {
+          actual_occurred: boolean | null
+          companion_id: string
+          confidence: number | null
+          created_at: string | null
+          disaster_type: string
+          id: string
+          location: string
+          predicted_date: string
+        }
+        Insert: {
+          actual_occurred?: boolean | null
+          companion_id: string
+          confidence?: number | null
+          created_at?: string | null
+          disaster_type: string
+          id?: string
+          location: string
+          predicted_date: string
+        }
+        Update: {
+          actual_occurred?: boolean | null
+          companion_id?: string
+          confidence?: number | null
+          created_at?: string | null
+          disaster_type?: string
+          id?: string
+          location?: string
+          predicted_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_disaster_predictions_companion_id_fkey"
+            columns: ["companion_id"]
+            isOneToOne: false
+            referencedRelation: "ai_companions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_learning_events: {
+        Row: {
+          companion_id: string
+          created_at: string | null
+          event_data: Json | null
+          event_type: string
+          experience_gained: number | null
+          id: string
+        }
+        Insert: {
+          companion_id: string
+          created_at?: string | null
+          event_data?: Json | null
+          event_type: string
+          experience_gained?: number | null
+          id?: string
+        }
+        Update: {
+          companion_id?: string
+          created_at?: string | null
+          event_data?: Json | null
+          event_type?: string
+          experience_gained?: number | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_learning_events_companion_id_fkey"
+            columns: ["companion_id"]
+            isOneToOne: false
+            referencedRelation: "ai_companions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_market_insights: {
+        Row: {
+          best_buy_times: number[] | null
+          best_sell_times: number[] | null
+          companion_id: string
+          created_at: string | null
+          demand_pattern: string | null
+          good_id: string
+          id: string
+          last_analyzed: string | null
+          port_id: string
+          profit_potential: number | null
+        }
+        Insert: {
+          best_buy_times?: number[] | null
+          best_sell_times?: number[] | null
+          companion_id: string
+          created_at?: string | null
+          demand_pattern?: string | null
+          good_id: string
+          id?: string
+          last_analyzed?: string | null
+          port_id: string
+          profit_potential?: number | null
+        }
+        Update: {
+          best_buy_times?: number[] | null
+          best_sell_times?: number[] | null
+          companion_id?: string
+          created_at?: string | null
+          demand_pattern?: string | null
+          good_id?: string
+          id?: string
+          last_analyzed?: string | null
+          port_id?: string
+          profit_potential?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_market_insights_companion_id_fkey"
+            columns: ["companion_id"]
+            isOneToOne: false
+            referencedRelation: "ai_companions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_price_history: {
+        Row: {
+          id: string
+          insight_id: string
+          price: number
+          timestamp: string | null
+          volume: number | null
+        }
+        Insert: {
+          id?: string
+          insight_id: string
+          price: number
+          timestamp?: string | null
+          volume?: number | null
+        }
+        Update: {
+          id?: string
+          insight_id?: string
+          price?: number
+          timestamp?: string | null
+          volume?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_price_history_insight_id_fkey"
+            columns: ["insight_id"]
+            isOneToOne: false
+            referencedRelation: "ai_market_insights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_route_patterns: {
+        Row: {
+          average_profit_margin: number | null
+          best_time_of_day: number | null
+          companion_id: string
+          created_at: string | null
+          end_port: string
+          id: string
+          last_used: string | null
+          optimal_goods: string[] | null
+          route_id: string
+          start_port: string
+          success_rate: number | null
+          times_used: number | null
+          weather_preference: string | null
+        }
+        Insert: {
+          average_profit_margin?: number | null
+          best_time_of_day?: number | null
+          companion_id: string
+          created_at?: string | null
+          end_port: string
+          id?: string
+          last_used?: string | null
+          optimal_goods?: string[] | null
+          route_id: string
+          start_port: string
+          success_rate?: number | null
+          times_used?: number | null
+          weather_preference?: string | null
+        }
+        Update: {
+          average_profit_margin?: number | null
+          best_time_of_day?: number | null
+          companion_id?: string
+          created_at?: string | null
+          end_port?: string
+          id?: string
+          last_used?: string | null
+          optimal_goods?: string[] | null
+          route_id?: string
+          start_port?: string
+          success_rate?: number | null
+          times_used?: number | null
+          weather_preference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_route_patterns_companion_id_fkey"
+            columns: ["companion_id"]
+            isOneToOne: false
+            referencedRelation: "ai_companions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_suggestions: {
+        Row: {
+          action_reasoning: string | null
+          action_required: boolean | null
+          action_target: string | null
+          action_timing: string | null
+          action_type: string | null
+          companion_id: string
+          created_at: string | null
+          description: string
+          expected_profit: number | null
+          id: string
+          priority: string
+          resolved_at: string | null
+          risk_level: number | null
+          status: string | null
+          title: string
+          type: string
+        }
+        Insert: {
+          action_reasoning?: string | null
+          action_required?: boolean | null
+          action_target?: string | null
+          action_timing?: string | null
+          action_type?: string | null
+          companion_id: string
+          created_at?: string | null
+          description: string
+          expected_profit?: number | null
+          id?: string
+          priority: string
+          resolved_at?: string | null
+          risk_level?: number | null
+          status?: string | null
+          title: string
+          type: string
+        }
+        Update: {
+          action_reasoning?: string | null
+          action_required?: boolean | null
+          action_target?: string | null
+          action_timing?: string | null
+          action_type?: string | null
+          companion_id?: string
+          created_at?: string | null
+          description?: string
+          expected_profit?: number | null
+          id?: string
+          priority?: string
+          resolved_at?: string | null
+          risk_level?: number | null
+          status?: string | null
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_suggestions_companion_id_fkey"
+            columns: ["companion_id"]
+            isOneToOne: false
+            referencedRelation: "ai_companions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asset: {
         Row: {
           asset_id: string
           asset_type: string
           assigned_route_id: string | null
           created_at: string
+          current_load: number | null
           custom_name: string | null
+          destination: string | null
+          health: number | null
+          last_maintenance: string | null
           maintenance_cost: number
           owner_id: string
+          port_id: string | null
+          position: Json | null
+          rotation: number | null
           stats: Json
+          status: string | null
           updated_at: string
         }
         Insert: {
@@ -51,10 +354,18 @@ export type Database = {
           asset_type: string
           assigned_route_id?: string | null
           created_at?: string
+          current_load?: number | null
           custom_name?: string | null
+          destination?: string | null
+          health?: number | null
+          last_maintenance?: string | null
           maintenance_cost?: number
           owner_id: string
+          port_id?: string | null
+          position?: Json | null
+          rotation?: number | null
           stats?: Json
+          status?: string | null
           updated_at?: string
         }
         Update: {
@@ -62,10 +373,18 @@ export type Database = {
           asset_type?: string
           assigned_route_id?: string | null
           created_at?: string
+          current_load?: number | null
           custom_name?: string | null
+          destination?: string | null
+          health?: number | null
+          last_maintenance?: string | null
           maintenance_cost?: number
           owner_id?: string
+          port_id?: string | null
+          position?: Json | null
+          rotation?: number | null
           stats?: Json
+          status?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -125,6 +444,84 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
         ]
+      }
+      market_dynamics: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          demand_volatility: number | null
+          id: string
+          price_elasticity: number | null
+          seasonal_modifiers: Json | null
+          supply_growth_rate: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          demand_volatility?: number | null
+          id?: string
+          price_elasticity?: number | null
+          seasonal_modifiers?: Json | null
+          supply_growth_rate?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          demand_volatility?: number | null
+          id?: string
+          price_elasticity?: number | null
+          seasonal_modifiers?: Json | null
+          supply_growth_rate?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      market_items: {
+        Row: {
+          base_price: number
+          category: string | null
+          created_at: string | null
+          current_price: number
+          demand: number
+          id: string
+          last_updated: string | null
+          name: string
+          production_cost_modifier: number
+          supply: number
+          type: string
+          volatility: number
+        }
+        Insert: {
+          base_price: number
+          category?: string | null
+          created_at?: string | null
+          current_price: number
+          demand?: number
+          id?: string
+          last_updated?: string | null
+          name: string
+          production_cost_modifier?: number
+          supply?: number
+          type: string
+          volatility?: number
+        }
+        Update: {
+          base_price?: number
+          category?: string | null
+          created_at?: string | null
+          current_price?: number
+          demand?: number
+          id?: string
+          last_updated?: string | null
+          name?: string
+          production_cost_modifier?: number
+          supply?: number
+          type?: string
+          volatility?: number
+        }
+        Relationships: []
       }
       player: {
         Row: {
@@ -186,6 +583,44 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "specialist"
             referencedColumns: ["specialist_id"]
+          },
+        ]
+      }
+      price_history: {
+        Row: {
+          created_at: string | null
+          demand: number
+          id: string
+          item_id: string
+          price: number
+          supply: number
+          timestamp: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          demand: number
+          id?: string
+          item_id: string
+          price: number
+          supply: number
+          timestamp?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          demand?: number
+          id?: string
+          item_id?: string
+          price?: number
+          supply?: number
+          timestamp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_history_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "market_items"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -251,6 +686,57 @@ export type Database = {
         }
         Relationships: []
       }
+      transactions: {
+        Row: {
+          created_at: string | null
+          id: string
+          item_id: string
+          player_id: string
+          price_per_unit: number
+          quantity: number
+          timestamp: string | null
+          total_price: number
+          type: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          item_id: string
+          player_id: string
+          price_per_unit: number
+          quantity: number
+          timestamp?: string | null
+          total_price: number
+          type: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          item_id?: string
+          player_id?: string
+          price_per_unit?: number
+          quantity?: number
+          timestamp?: string | null
+          total_price?: number
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "market_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "player"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       world_state: {
         Row: {
           active_disasters: Json
@@ -274,6 +760,34 @@ export type Database = {
       }
     }
     Views: {
+      placed_assets: {
+        Row: {
+          asset_id: string | null
+          asset_type: string | null
+          created_at: string | null
+          current_load: number | null
+          custom_name: string | null
+          destination: string | null
+          health: number | null
+          last_maintenance: string | null
+          owner_id: string | null
+          owner_name: string | null
+          port_id: string | null
+          position: Json | null
+          rotation: number | null
+          stats: Json | null
+          status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "player"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       public_player_stats: {
         Row: {
           ai_level: number | null
@@ -294,17 +808,46 @@ export type Database = {
       }
     }
     Functions: {
+      add_ai_experience: {
+        Args: { p_companion_id: string; p_experience: number }
+        Returns: Json
+      }
       add_player_cash: {
         Args: { player_id: string; amount: number }
         Returns: undefined
+      }
+      calculate_area_effects: {
+        Args: { asset_position: Json; effect_radius: number }
+        Returns: {
+          affected_port_id: string
+          distance: number
+        }[]
+      }
+      calculate_market_price: {
+        Args: {
+          p_base_cost: number
+          p_production_modifier: number
+          p_supply: number
+          p_demand: number
+          p_volatility: number
+        }
+        Returns: number
       }
       calculate_player_net_worth: {
         Args: { player_id: string }
         Returns: number
       }
+      cleanup_old_price_history: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       deduct_player_cash: {
         Args: { player_id: string; amount: number }
         Returns: undefined
+      }
+      get_asset_utilization: {
+        Args: { asset_id: string }
+        Returns: number
       }
       grant_exclusive_license: {
         Args: { player_id: string; license_type: string; bonuses: Json }
@@ -322,529 +865,18 @@ export type Database = {
         Args: { player_id: string; xp_gained: number }
         Returns: Json
       }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-  storage: {
-    Tables: {
-      buckets: {
-        Row: {
-          allowed_mime_types: string[] | null
-          avif_autodetection: boolean | null
-          created_at: string | null
-          file_size_limit: number | null
-          id: string
-          name: string
-          owner: string | null
-          owner_id: string | null
-          public: boolean | null
-          type: Database["storage"]["Enums"]["buckettype"]
-          updated_at: string | null
-        }
-        Insert: {
-          allowed_mime_types?: string[] | null
-          avif_autodetection?: boolean | null
-          created_at?: string | null
-          file_size_limit?: number | null
-          id: string
-          name: string
-          owner?: string | null
-          owner_id?: string | null
-          public?: boolean | null
-          type?: Database["storage"]["Enums"]["buckettype"]
-          updated_at?: string | null
-        }
-        Update: {
-          allowed_mime_types?: string[] | null
-          avif_autodetection?: boolean | null
-          created_at?: string | null
-          file_size_limit?: number | null
-          id?: string
-          name?: string
-          owner?: string | null
-          owner_id?: string | null
-          public?: boolean | null
-          type?: Database["storage"]["Enums"]["buckettype"]
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      buckets_analytics: {
-        Row: {
-          created_at: string
-          format: string
-          id: string
-          type: Database["storage"]["Enums"]["buckettype"]
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          format?: string
-          id: string
-          type?: Database["storage"]["Enums"]["buckettype"]
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          format?: string
-          id?: string
-          type?: Database["storage"]["Enums"]["buckettype"]
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      iceberg_namespaces: {
-        Row: {
-          bucket_id: string
-          created_at: string
-          id: string
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          bucket_id: string
-          created_at?: string
-          id?: string
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          bucket_id?: string
-          created_at?: string
-          id?: string
-          name?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "iceberg_namespaces_bucket_id_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "buckets_analytics"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      iceberg_tables: {
-        Row: {
-          bucket_id: string
-          created_at: string
-          id: string
-          location: string
-          name: string
-          namespace_id: string
-          updated_at: string
-        }
-        Insert: {
-          bucket_id: string
-          created_at?: string
-          id?: string
-          location: string
-          name: string
-          namespace_id: string
-          updated_at?: string
-        }
-        Update: {
-          bucket_id?: string
-          created_at?: string
-          id?: string
-          location?: string
-          name?: string
-          namespace_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "iceberg_tables_bucket_id_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "buckets_analytics"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "iceberg_tables_namespace_id_fkey"
-            columns: ["namespace_id"]
-            isOneToOne: false
-            referencedRelation: "iceberg_namespaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      migrations: {
-        Row: {
-          executed_at: string | null
-          hash: string
-          id: number
-          name: string
-        }
-        Insert: {
-          executed_at?: string | null
-          hash: string
-          id: number
-          name: string
-        }
-        Update: {
-          executed_at?: string | null
-          hash?: string
-          id?: number
-          name?: string
-        }
-        Relationships: []
-      }
-      objects: {
-        Row: {
-          bucket_id: string | null
-          created_at: string | null
-          id: string
-          last_accessed_at: string | null
-          level: number | null
-          metadata: Json | null
-          name: string | null
-          owner: string | null
-          owner_id: string | null
-          path_tokens: string[] | null
-          updated_at: string | null
-          user_metadata: Json | null
-          version: string | null
-        }
-        Insert: {
-          bucket_id?: string | null
-          created_at?: string | null
-          id?: string
-          last_accessed_at?: string | null
-          level?: number | null
-          metadata?: Json | null
-          name?: string | null
-          owner?: string | null
-          owner_id?: string | null
-          path_tokens?: string[] | null
-          updated_at?: string | null
-          user_metadata?: Json | null
-          version?: string | null
-        }
-        Update: {
-          bucket_id?: string | null
-          created_at?: string | null
-          id?: string
-          last_accessed_at?: string | null
-          level?: number | null
-          metadata?: Json | null
-          name?: string | null
-          owner?: string | null
-          owner_id?: string | null
-          path_tokens?: string[] | null
-          updated_at?: string | null
-          user_metadata?: Json | null
-          version?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "objects_bucketId_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "buckets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      prefixes: {
-        Row: {
-          bucket_id: string
-          created_at: string | null
-          level: number
-          name: string
-          updated_at: string | null
-        }
-        Insert: {
-          bucket_id: string
-          created_at?: string | null
-          level?: number
-          name: string
-          updated_at?: string | null
-        }
-        Update: {
-          bucket_id?: string
-          created_at?: string | null
-          level?: number
-          name?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "prefixes_bucketId_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "buckets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      s3_multipart_uploads: {
-        Row: {
-          bucket_id: string
-          created_at: string
-          id: string
-          in_progress_size: number
-          key: string
-          owner_id: string | null
-          upload_signature: string
-          user_metadata: Json | null
-          version: string
-        }
-        Insert: {
-          bucket_id: string
-          created_at?: string
-          id: string
-          in_progress_size?: number
-          key: string
-          owner_id?: string | null
-          upload_signature: string
-          user_metadata?: Json | null
-          version: string
-        }
-        Update: {
-          bucket_id?: string
-          created_at?: string
-          id?: string
-          in_progress_size?: number
-          key?: string
-          owner_id?: string | null
-          upload_signature?: string
-          user_metadata?: Json | null
-          version?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "s3_multipart_uploads_bucket_id_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "buckets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      s3_multipart_uploads_parts: {
-        Row: {
-          bucket_id: string
-          created_at: string
-          etag: string
-          id: string
-          key: string
-          owner_id: string | null
-          part_number: number
-          size: number
-          upload_id: string
-          version: string
-        }
-        Insert: {
-          bucket_id: string
-          created_at?: string
-          etag: string
-          id?: string
-          key: string
-          owner_id?: string | null
-          part_number: number
-          size?: number
-          upload_id: string
-          version: string
-        }
-        Update: {
-          bucket_id?: string
-          created_at?: string
-          etag?: string
-          id?: string
-          key?: string
-          owner_id?: string | null
-          part_number?: number
-          size?: number
-          upload_id?: string
-          version?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "s3_multipart_uploads_parts_bucket_id_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "buckets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "s3_multipart_uploads_parts_upload_id_fkey"
-            columns: ["upload_id"]
-            isOneToOne: false
-            referencedRelation: "s3_multipart_uploads"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      add_prefixes: {
-        Args: { _bucket_id: string; _name: string }
-        Returns: undefined
-      }
-      can_insert_object: {
-        Args: { bucketid: string; name: string; owner: string; metadata: Json }
-        Returns: undefined
-      }
-      delete_prefix: {
-        Args: { _bucket_id: string; _name: string }
-        Returns: boolean
-      }
-      extension: {
-        Args: { name: string }
-        Returns: string
-      }
-      filename: {
-        Args: { name: string }
-        Returns: string
-      }
-      foldername: {
-        Args: { name: string }
-        Returns: string[]
-      }
-      get_level: {
-        Args: { name: string }
-        Returns: number
-      }
-      get_prefix: {
-        Args: { name: string }
-        Returns: string
-      }
-      get_prefixes: {
-        Args: { name: string }
-        Returns: string[]
-      }
-      get_size_by_bucket: {
+      update_market_cycle: {
         Args: Record<PropertyKey, never>
         Returns: {
-          size: number
-          bucket_id: string
-        }[]
-      }
-      list_multipart_uploads_with_delimiter: {
-        Args: {
-          bucket_id: string
-          prefix_param: string
-          delimiter_param: string
-          max_keys?: number
-          next_key_token?: string
-          next_upload_token?: string
-        }
-        Returns: {
-          key: string
-          id: string
-          created_at: string
-        }[]
-      }
-      list_objects_with_delimiter: {
-        Args: {
-          bucket_id: string
-          prefix_param: string
-          delimiter_param: string
-          max_keys?: number
-          start_after?: string
-          next_token?: string
-        }
-        Returns: {
-          name: string
-          id: string
-          metadata: Json
-          updated_at: string
-        }[]
-      }
-      operation: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      search: {
-        Args: {
-          prefix: string
-          bucketname: string
-          limits?: number
-          levels?: number
-          offsets?: number
-          search?: string
-          sortcolumn?: string
-          sortorder?: string
-        }
-        Returns: {
-          name: string
-          id: string
-          updated_at: string
-          created_at: string
-          last_accessed_at: string
-          metadata: Json
-        }[]
-      }
-      search_legacy_v1: {
-        Args: {
-          prefix: string
-          bucketname: string
-          limits?: number
-          levels?: number
-          offsets?: number
-          search?: string
-          sortcolumn?: string
-          sortorder?: string
-        }
-        Returns: {
-          name: string
-          id: string
-          updated_at: string
-          created_at: string
-          last_accessed_at: string
-          metadata: Json
-        }[]
-      }
-      search_v1_optimised: {
-        Args: {
-          prefix: string
-          bucketname: string
-          limits?: number
-          levels?: number
-          offsets?: number
-          search?: string
-          sortcolumn?: string
-          sortorder?: string
-        }
-        Returns: {
-          name: string
-          id: string
-          updated_at: string
-          created_at: string
-          last_accessed_at: string
-          metadata: Json
-        }[]
-      }
-      search_v2: {
-        Args: {
-          prefix: string
-          bucket_name: string
-          limits?: number
-          levels?: number
-          start_after?: string
-        }
-        Returns: {
-          key: string
-          name: string
-          id: string
-          updated_at: string
-          created_at: string
-          metadata: Json
+          item_id: string
+          old_price: number
+          new_price: number
+          price_change_percent: number
         }[]
       }
     }
     Enums: {
-      buckettype: "STANDARD" | "ANALYTICS"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -970,16 +1002,7 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },
-  storage: {
-    Enums: {
-      buckettype: ["STANDARD", "ANALYTICS"],
-    },
-  },
 } as const
-

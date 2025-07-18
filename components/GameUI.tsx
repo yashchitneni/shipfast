@@ -9,6 +9,7 @@ const RouteManager = dynamic(() => import('../app/components/routes/RouteManager
 const FinancialDashboard = dynamic(() => import('../app/components/finance/FinancialDashboard'), { ssr: false });
 const AICompanionPanel = dynamic(() => import('../app/components/ai/AICompanionPanel'), { ssr: false });
 const AssetManager = dynamic(() => import('../app/components/assets/AssetManager').then(mod => ({ default: mod.AssetManager })), { ssr: false });
+const FirstActionGuide = dynamic(() => import('../app/components/tutorial/FirstActionGuide').then(mod => ({ default: mod.FirstActionGuide })), { ssr: false });
 
 /**
  * TopBar component displays player stats and game controls.
@@ -121,6 +122,9 @@ export default function GameUI() {
           </div>
         </div>
       )}
+      
+      {/* First Action Tutorial */}
+      <FirstActionGuide />
     </div>
   );
 }

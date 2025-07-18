@@ -33,9 +33,9 @@ CREATE TABLE IF NOT EXISTS transactions (
   item_id UUID NOT NULL REFERENCES market_items(id),
   type TEXT NOT NULL CHECK (type IN ('BUY', 'SELL')),
   quantity INTEGER NOT NULL,
-  price DECIMAL(10, 2) NOT NULL,
-  total DECIMAL(10, 2) NOT NULL,
-  player_id UUID NOT NULL REFERENCES players(id),
+  price_per_unit DECIMAL(10, 2) NOT NULL,
+  total_price DECIMAL(10, 2) NOT NULL,
+  player_id UUID NOT NULL REFERENCES player(user_id),
   timestamp TIMESTAMPTZ DEFAULT NOW(),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

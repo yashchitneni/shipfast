@@ -143,8 +143,6 @@ export default class WorldMapScene extends Phaser.Scene {
     this.isometricMap.initialize().then(() => {
       // Now create the visual tiles
       this.isometricMap.create();
-      // Extract ports from the isometric map and store them
-      this.extractPortsFromMap();
       
       // Set up camera
       this.setupCamera();
@@ -152,13 +150,16 @@ export default class WorldMapScene extends Phaser.Scene {
       // Create camera controller
       this.cameraController = new CameraController(this.cameras.main);
       
-      // Initialize LOD Manager
+      // Initialize LOD Manager BEFORE extracting ports
       this.lodManager = new LODManager(this, {
         detailThreshold: 1.5,
         simpleThreshold: 1.2,
         fadeTransition: true,
         cullingPadding: 300
       });
+      
+      // Extract ports from the isometric map and store them (after LOD manager is initialized)
+      this.extractPortsFromMap();
       
       // Set up input handlers
       this.setupInputHandlers();

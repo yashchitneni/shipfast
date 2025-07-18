@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import GameHUD from './GameHUD';
+import GameHUD from '../../../src/components/game/GameHUD';
 import { useTimeSync } from '@/app/hooks/useTimeSync';
 import { useTimeStore } from '@/app/stores/timeStore';
 import { useEconomyStore } from '@/app/store/useEconomyStore';
@@ -50,7 +50,7 @@ const TimeSystemDemo: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       {/* Game HUD */}
-      <GameHUD showEventCalendar={showCalendar} />
+              <GameHUD />
       
       {/* Main Content */}
       <div className="max-w-6xl mx-auto space-y-6">

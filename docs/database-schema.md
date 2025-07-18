@@ -1,361 +1,515 @@
-# Database Schema Documentation
+# **Entity-Relationship Diagram (ERD)**
 
-## Overview
+Version: 3.0 (Complete Schema - All Migrations)
+Date: July 16, 2025
+Game: Flexport - The Video Game
 
-Flexport uses Supabase (PostgreSQL) as its database backend. The schema is designed to support real-time multiplayer gameplay, persistent game state, and efficient querying for game mechanics.
+## **1. Introduction**
 
-## Core Tables
+This document provides the definitive logical data model for Flexport, reflecting ALL tables from database migrations 001-007. This serves as the authoritative blueprint for the Supabase (PostgreSQL) database structure.
 
-### 1. profiles
-User profiles and authentication data.
+## **2. Complete Entity-Relationship Diagram**
 
-```sql
-CREATE TABLE profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  username TEXT UNIQUE NOT NULL,
-  display_name TEXT,
-  avatar_url TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
-  last_seen TIMESTAMP WITH TIME ZONE,
-  settings JSONB DEFAULT '{}'::jsonb,
-  achievements JSONB DEFAULT '[]'::jsonb,
-  statistics JSONB DEFAULT '{}'::jsonb
-);
+```mermaid
+erDiagram
+    %% Core Player and Authentication
+    AUTH_USERS {
+        UUID id PK
+        string email
+        timestamp created_at
+    }
+    
+    PLAYERS {
+        UUID user_id PK_FK
+        string username
+        int cash
+        int level
+        int experience
+        int total_distance_traveled
+        int total_profit_earned
+        int total_trade_volume
+        timestamp created_at
+        timestamp updated_at
+    }
 
--- Indexes
-CREATE INDEX idx_profiles_username ON profiles(username);
-CREATE INDEX idx_profiles_last_seen ON profiles(last_seen);
+    %% Asset Management System
+    ASSET {
+        UUID asset_id PK
+        UUID owner_id FK
+        string asset_type
+        string custom_name
+        jsonb stats
+        int maintenance_cost
+        UUID assigned_route_id FK
+        jsonb position
+        int rotation
+        text port_id
+        text status
+        int health
+        int current_load
+        text destination
+        timestamp last_maintenance
+        timestamp created_at
+    }
+
+    PLACED_ASSETS_VIEW {
+        UUID asset_id
+        UUID owner_id
+        string asset_type
+        jsonb position
+        text port_id
+        text status
+        string owner_name
+    }
+
+    %% Route System
+    ROUTE {
+        UUID route_id PK
+        UUID owner_id FK
+        string origin_port_id
+        string destination_port_id
+        string route_name
+        jsonb profitability
+        jsonb active_disasters
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    %% Market System (Migration 005)
+    MARKET_ITEMS {
+        UUID id PK
+        string name
+        string type
+        string category
+        decimal base_price
+        decimal current_price
+        int supply
+        int demand
+        decimal volatility
+        decimal production_cost_modifier
+        timestamp last_updated
+        timestamp created_at
+    }
+
+    PRICE_HISTORY {
+        UUID id PK
+        UUID item_id FK
+        decimal price
+        int supply
+        int demand
+        timestamp timestamp
+        timestamp created_at
+    }
+
+    TRANSACTIONS {
+        UUID id PK
+        UUID item_id FK
+        string type
+        int quantity
+        decimal price
+        decimal total
+        UUID player_id FK
+        timestamp timestamp
+        timestamp created_at
+    }
+
+    MARKET_DYNAMICS {
+        UUID id PK
+        decimal supply_growth_rate
+        decimal demand_volatility
+        decimal price_elasticity
+        jsonb seasonal_modifiers
+        boolean active
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    %% AI Companion System (Migration 006)
+    AI_COMPANIONS {
+        UUID id PK
+        UUID user_id FK
+        string name
+        string level
+        int experience
+        int total_suggestions
+        int successful_suggestions
+        decimal accuracy
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    AI_ROUTE_PATTERNS {
+        UUID id PK
+        UUID companion_id FK
+        UUID route_id
+        string start_port
+        string end_port
+        decimal average_profit_margin
+        decimal success_rate
+        text[] optimal_goods
+        int best_time_of_day
+        string weather_preference
+        int times_used
+        timestamp last_used
+        timestamp created_at
+    }
+
+    AI_MARKET_INSIGHTS {
+        UUID id PK
+        UUID companion_id FK
+        text port_id
+        text good_id
+        string demand_pattern
+        int[] best_buy_times
+        int[] best_sell_times
+        decimal profit_potential
+        timestamp last_analyzed
+        timestamp created_at
+    }
+
+    AI_PRICE_HISTORY {
+        UUID id PK
+        UUID insight_id FK
+        decimal price
+        int volume
+        timestamp timestamp
+    }
+
+    AI_DISASTER_PREDICTIONS {
+        UUID id PK
+        UUID companion_id FK
+        string disaster_type
+        string location
+        timestamp predicted_date
+        decimal confidence
+        boolean actual_occurred
+        timestamp created_at
+    }
+
+    AI_SUGGESTIONS {
+        UUID id PK
+        UUID companion_id FK
+        string type
+        string priority
+        string title
+        string description
+        decimal expected_profit
+        decimal risk_level
+        boolean action_required
+        string action_type
+        string action_target
+        string action_timing
+        string action_reasoning
+        string status
+        timestamp created_at
+        timestamp resolved_at
+    }
+
+    AI_LEARNING_EVENTS {
+        UUID id PK
+        UUID companion_id FK
+        string event_type
+        jsonb event_data
+        int experience_gained
+        timestamp created_at
+    }
+
+    %% Additional Systems
+    SPECIALIST {
+        UUID specialist_id PK
+        string specialist_type
+        jsonb effect_bonuses
+        int base_salary
+    }
+
+    PLAYER_SPECIALISTS {
+        UUID player_id FK
+        UUID specialist_id FK
+        date hired_date
+    }
+
+    WORLD_STATE {
+        string world_id PK
+        jsonb market_conditions
+        jsonb active_disasters
+    }
+
+    AUCTION {
+        UUID auction_id PK
+        string opportunity_type
+        jsonb opportunity_details
+        int current_bid
+        UUID highest_bidder_id FK
+        timestamp end_time
+    }
+
+    %% Relationships
+    AUTH_USERS ||--|| PLAYERS : has_profile
+    
+    PLAYERS ||--o{ ASSET : owns
+    PLAYERS ||--o{ ROUTE : creates
+    PLAYERS ||--o{ PLAYER_SPECIALISTS : hires
+    PLAYERS ||--o{ AUCTION : bids_on
+    PLAYERS ||--o{ TRANSACTIONS : performs
+    PLAYERS ||--|| AI_COMPANIONS : has
+
+    ASSET }o--|| ROUTE : assigned_to
+    
+    SPECIALIST ||--o{ PLAYER_SPECIALISTS : hired_by
+
+    MARKET_ITEMS ||--o{ PRICE_HISTORY : has_history
+    MARKET_ITEMS ||--o{ TRANSACTIONS : is_traded
+
+    AI_COMPANIONS ||--o{ AI_ROUTE_PATTERNS : learns
+    AI_COMPANIONS ||--o{ AI_MARKET_INSIGHTS : analyzes
+    AI_COMPANIONS ||--o{ AI_DISASTER_PREDICTIONS : predicts
+    AI_COMPANIONS ||--o{ AI_SUGGESTIONS : generates
+    AI_COMPANIONS ||--o{ AI_LEARNING_EVENTS : experiences
+
+    AI_MARKET_INSIGHTS ||--o{ AI_PRICE_HISTORY : tracks
 ```
 
-### 2. game_states
-Core game state for each player.
+## **3. Detailed Entity Descriptions**
 
+### **Core Entities**
+
+#### **PLAYERS**
+- Central player entity, extended from Supabase auth.users
+- Tracks progression (level, experience) and statistics
+- One-to-one relationship with AUTH_USERS
+
+#### **ASSET**
+- All player-owned assets (ships, planes, warehouses)
+- Enhanced with position tracking and health/status system
+- Can be assigned to routes or stationed at ports
+
+### **Market System (Migration 005)**
+
+#### **MARKET_ITEMS**
+- Defines all tradable goods in the economy
+- Types: GOODS, CAPITAL, ASSETS, LABOR
+- Categories: RAW_MATERIALS, MANUFACTURED, LUXURY, PERISHABLE
+- Dynamic pricing based on supply/demand
+
+#### **PRICE_HISTORY**
+- Time-series data for market analysis
+- Tracks price, supply, and demand over time
+
+#### **TRANSACTIONS**
+- Complete audit trail of all player trades
+- Types: BUY, SELL
+
+#### **MARKET_DYNAMICS**
+- Global economic configuration
+- Controls supply growth, demand volatility, and seasonal effects
+
+### **AI Companion System (Migration 006)**
+
+#### **AI_COMPANIONS**
+- Each player has one AI companion
+- Levels: novice → apprentice → journeyman → expert → master → legendary
+- Learns from player actions and improves over time
+
+#### **AI_ROUTE_PATTERNS**
+- Learned patterns from successful routes
+- Tracks profitability, optimal goods, timing preferences
+
+#### **AI_MARKET_INSIGHTS**
+- Port-specific market intelligence
+- Demand patterns: stable, rising, falling, volatile
+- Optimal trading times
+
+#### **AI_SUGGESTIONS**
+- Generated recommendations for players
+- Types: route, trade, upgrade, warning
+- Priority levels: low, medium, high, critical
+
+### **Supporting Systems**
+
+#### **ROUTE**
+- Player-created trade connections between ports
+- Tracks profitability and active conditions
+
+#### **SPECIALIST / PLAYER_SPECIALISTS**
+- Hired experts providing empire-wide bonuses
+- Many-to-many relationship through junction table
+
+#### **AUCTION**
+- Real-time bidding events for unique opportunities
+- Supports multiplayer competition
+
+## **4. Key Design Decisions**
+
+### **JSONB Usage**
+- Used for flexible, schema-less data (stats, positions, event_data)
+- Enables rapid iteration without migrations
+- Indexed with GIN for performance
+
+### **Row Level Security (RLS)**
+- All tables have RLS enabled
+- Players can only access their own data
+- Market data is public read, private write
+
+### **Temporal Data**
+- Extensive use of timestamps for historical analysis
+- Price history enables trend analysis
+- Learning events track AI improvement over time
+
+### **Performance Optimization**
+- Strategic indexes on foreign keys and frequently queried columns
+- Views (placed_assets) for common query patterns
+- Stored procedures for complex calculations
+
+## **5. Migration History**
+
+1. **001_initial_schema.sql** - Core tables (players, assets, routes)
+2. **002_row_level_security.sql** - Security policies
+3. **003_stored_procedures.sql** - Helper functions
+4. **004_dev_test_user.sql** - Development data
+5. **005_market_system.sql** - Complete trading system
+6. **006_ai_companion_system.sql** - AI advisor system
+7. **007_enhanced_assets.sql** - Asset positioning and status
+
+## **6. Performance Considerations**
+
+### **Indexes**
 ```sql
-CREATE TABLE game_states (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  player_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  cash DECIMAL(12, 2) DEFAULT 50000.00,
-  reputation INTEGER DEFAULT 50,
-  game_quarter INTEGER DEFAULT 1,
-  game_year INTEGER DEFAULT 2025,
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
-  
-  CONSTRAINT unique_active_game UNIQUE(player_id, is_active)
-);
+-- Core performance indexes
+CREATE INDEX idx_assets_owner ON assets(owner_id);
+CREATE INDEX idx_assets_port ON assets(port_id);
+CREATE INDEX idx_routes_owner ON routes(owner_id);
+CREATE INDEX idx_market_items_category ON market_items(category);
+CREATE INDEX idx_price_history_item_time ON price_history(item_id, timestamp);
+CREATE INDEX idx_transactions_player_time ON transactions(player_id, timestamp);
 
--- Indexes
-CREATE INDEX idx_game_states_player ON game_states(player_id);
-CREATE INDEX idx_game_states_active ON game_states(is_active);
+-- JSONB indexes for flexible queries
+CREATE INDEX idx_assets_stats ON assets USING GIN (stats);
+CREATE INDEX idx_market_seasonal ON market_dynamics USING GIN (seasonal_modifiers);
 ```
 
-### 3. assets
-All player-owned assets (ships, planes, warehouses, etc.).
-
+### **Views for Common Queries**
 ```sql
-CREATE TABLE assets (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  game_state_id UUID NOT NULL REFERENCES game_states(id) ON DELETE CASCADE,
-  asset_type TEXT NOT NULL CHECK (asset_type IN ('ship', 'plane', 'warehouse', 'specialist', 'upgrade')),
-  asset_subtype TEXT NOT NULL,
-  name TEXT NOT NULL,
-  position JSONB NOT NULL, -- {x: number, y: number, port_id: UUID}
-  stats JSONB NOT NULL, -- {capacity, speed, efficiency, etc.}
-  status TEXT DEFAULT 'idle' CHECK (status IN ('idle', 'in_transit', 'loading', 'maintenance', 'destroyed')),
-  health INTEGER DEFAULT 100,
-  assigned_route_id UUID REFERENCES routes(id) ON DELETE SET NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
-);
-
--- Indexes
-CREATE INDEX idx_assets_game_state ON assets(game_state_id);
-CREATE INDEX idx_assets_type ON assets(asset_type);
-CREATE INDEX idx_assets_status ON assets(status);
-CREATE INDEX idx_assets_route ON assets(assigned_route_id);
+-- Placed assets view for map rendering
+CREATE VIEW placed_assets AS
+SELECT
+  a.asset_id,
+  a.owner_id,
+  a.asset_type,
+  a.position,
+  a.port_id,
+  a.status,
+  p.username as owner_name
+FROM assets a
+JOIN players p ON a.owner_id = p.user_id
+WHERE a.position IS NOT NULL;
 ```
 
-### 4. routes
-Player-created shipping routes.
-
+### **Stored Procedures**
 ```sql
-CREATE TABLE routes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  game_state_id UUID NOT NULL REFERENCES game_states(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  origin_port_id UUID NOT NULL REFERENCES ports(id),
-  destination_port_id UUID NOT NULL REFERENCES ports(id),
-  waypoints JSONB DEFAULT '[]'::jsonb, -- Array of port IDs
-  route_type TEXT NOT NULL CHECK (route_type IN ('sea', 'air', 'hybrid')),
-  distance DECIMAL(10, 2) NOT NULL,
-  base_profit_rate DECIMAL(10, 2) NOT NULL,
-  risk_level INTEGER DEFAULT 1 CHECK (risk_level BETWEEN 1 AND 10),
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
-);
-
--- Indexes
-CREATE INDEX idx_routes_game_state ON routes(game_state_id);
-CREATE INDEX idx_routes_ports ON routes(origin_port_id, destination_port_id);
-CREATE INDEX idx_routes_active ON routes(is_active);
-```
-
-### 5. ports
-Global port locations (shared across all games).
-
-```sql
-CREATE TABLE ports (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  code TEXT UNIQUE NOT NULL, -- e.g., 'LAX', 'SHA', 'ROT'
-  name TEXT NOT NULL,
-  country TEXT NOT NULL,
-  region TEXT NOT NULL,
-  position JSONB NOT NULL, -- {x: number, y: number}
-  port_type TEXT[] NOT NULL DEFAULT ARRAY['sea'], -- ['sea'], ['air'], or ['sea', 'air']
-  size TEXT NOT NULL DEFAULT 'medium' CHECK (size IN ('small', 'medium', 'large', 'mega')),
-  base_demand JSONB NOT NULL, -- {goods_type: demand_level}
-  facilities JSONB DEFAULT '{}'::jsonb, -- Available upgrades/facilities
-  is_active BOOLEAN DEFAULT true
-);
-
--- Indexes
-CREATE INDEX idx_ports_code ON ports(code);
-CREATE INDEX idx_ports_type ON ports(port_type);
-CREATE INDEX idx_ports_region ON ports(region);
-```
-
-### 6. market_prices
-Dynamic market prices for goods.
-
-```sql
-CREATE TABLE market_prices (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  goods_type TEXT NOT NULL,
-  base_price DECIMAL(10, 2) NOT NULL,
-  current_price DECIMAL(10, 2) NOT NULL,
-  price_trend TEXT DEFAULT 'stable' CHECK (price_trend IN ('rising', 'falling', 'stable', 'volatile')),
-  demand_level INTEGER DEFAULT 5 CHECK (demand_level BETWEEN 1 AND 10),
-  supply_level INTEGER DEFAULT 5 CHECK (supply_level BETWEEN 1 AND 10),
-  last_updated TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
-  
-  CONSTRAINT unique_goods_type UNIQUE(goods_type)
-);
-
--- Indexes
-CREATE INDEX idx_market_prices_goods ON market_prices(goods_type);
-CREATE INDEX idx_market_prices_updated ON market_prices(last_updated);
-```
-
-### 7. transactions
-Financial transaction history.
-
-```sql
-CREATE TABLE transactions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  game_state_id UUID NOT NULL REFERENCES game_states(id) ON DELETE CASCADE,
-  transaction_type TEXT NOT NULL CHECK (transaction_type IN ('income', 'expense', 'transfer', 'loan', 'investment')),
-  category TEXT NOT NULL,
-  amount DECIMAL(12, 2) NOT NULL,
-  description TEXT,
-  related_entity_id UUID, -- References to assets, routes, etc.
-  related_entity_type TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
-);
-
--- Indexes
-CREATE INDEX idx_transactions_game_state ON transactions(game_state_id);
-CREATE INDEX idx_transactions_type ON transactions(transaction_type);
-CREATE INDEX idx_transactions_created ON transactions(created_at);
-```
-
-### 8. ai_companions
-AI companion state and learning data.
-
-```sql
-CREATE TABLE ai_companions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  game_state_id UUID UNIQUE NOT NULL REFERENCES game_states(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  personality_type TEXT NOT NULL DEFAULT 'balanced',
-  level INTEGER DEFAULT 1,
-  experience_points INTEGER DEFAULT 0,
-  training_data JSONB DEFAULT '{}'::jsonb,
-  suggestions_history JSONB DEFAULT '[]'::jsonb,
-  risk_tolerance DECIMAL(3, 2) DEFAULT 0.50 CHECK (risk_tolerance BETWEEN 0 AND 1),
-  specializations TEXT[] DEFAULT ARRAY[]::TEXT[],
-  trust_level INTEGER DEFAULT 50 CHECK (trust_level BETWEEN 0 AND 100),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
-);
-
--- Indexes
-CREATE INDEX idx_ai_companions_game_state ON ai_companions(game_state_id);
-```
-
-### 9. events
-Game events (disasters, market changes, etc.).
-
-```sql
-CREATE TABLE events (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  event_type TEXT NOT NULL CHECK (event_type IN ('disaster', 'market', 'political', 'technological', 'opportunity')),
-  severity TEXT NOT NULL DEFAULT 'medium' CHECK (severity IN ('low', 'medium', 'high', 'critical')),
-  title TEXT NOT NULL,
-  description TEXT NOT NULL,
-  affected_regions TEXT[] DEFAULT ARRAY[]::TEXT[],
-  affected_routes UUID[] DEFAULT ARRAY[]::UUID[],
-  effects JSONB NOT NULL, -- {price_modifier: 0.8, route_risk: +3, etc.}
-  duration_quarters INTEGER DEFAULT 1,
-  start_quarter INTEGER NOT NULL,
-  start_year INTEGER NOT NULL,
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
-);
-
--- Indexes
-CREATE INDEX idx_events_active ON events(is_active);
-CREATE INDEX idx_events_type ON events(event_type);
-CREATE INDEX idx_events_time ON events(start_year, start_quarter);
-```
-
-### 10. auctions
-Multiplayer auction system.
-
-```sql
-CREATE TABLE auctions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  auction_type TEXT NOT NULL CHECK (auction_type IN ('asset', 'route_license', 'contract', 'specialist')),
-  item_data JSONB NOT NULL,
-  starting_bid DECIMAL(12, 2) NOT NULL,
-  current_bid DECIMAL(12, 2),
-  current_bidder_id UUID REFERENCES game_states(id) ON DELETE SET NULL,
-  bid_increment DECIMAL(12, 2) DEFAULT 100.00,
-  start_time TIMESTAMP WITH TIME ZONE NOT NULL,
-  end_time TIMESTAMP WITH TIME ZONE NOT NULL,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'completed', 'cancelled')),
-  winner_id UUID REFERENCES game_states(id) ON DELETE SET NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
-);
-
--- Indexes
-CREATE INDEX idx_auctions_status ON auctions(status);
-CREATE INDEX idx_auctions_end_time ON auctions(end_time);
-CREATE INDEX idx_auctions_type ON auctions(auction_type);
-```
-
-### 11. contracts
-Long-term shipping contracts.
-
-```sql
-CREATE TABLE contracts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  game_state_id UUID NOT NULL REFERENCES game_states(id) ON DELETE CASCADE,
-  contract_type TEXT NOT NULL CHECK (contract_type IN ('delivery', 'supply', 'exclusive')),
-  client_name TEXT NOT NULL,
-  goods_type TEXT NOT NULL,
-  quantity INTEGER NOT NULL,
-  price_per_unit DECIMAL(10, 2) NOT NULL,
-  origin_port_id UUID REFERENCES ports(id),
-  destination_port_id UUID REFERENCES ports(id),
-  deadline_quarter INTEGER NOT NULL,
-  deadline_year INTEGER NOT NULL,
-  penalty_amount DECIMAL(12, 2) NOT NULL,
-  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'completed', 'failed', 'cancelled')),
-  completion_percentage DECIMAL(5, 2) DEFAULT 0.00,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
-);
-
--- Indexes
-CREATE INDEX idx_contracts_game_state ON contracts(game_state_id);
-CREATE INDEX idx_contracts_status ON contracts(status);
-CREATE INDEX idx_contracts_deadline ON contracts(deadline_year, deadline_quarter);
-```
-
-## Real-time Subscriptions
-
-Enable real-time features using Supabase Realtime:
-
-```sql
--- Enable realtime for specific tables
-ALTER PUBLICATION supabase_realtime ADD TABLE market_prices;
-ALTER PUBLICATION supabase_realtime ADD TABLE events;
-ALTER PUBLICATION supabase_realtime ADD TABLE auctions;
-```
-
-## Row Level Security (RLS)
-
-Example RLS policies for game_states:
-
-```sql
--- Enable RLS
-ALTER TABLE game_states ENABLE ROW LEVEL SECURITY;
-
--- Players can only see their own game states
-CREATE POLICY "Players can view own game states" ON game_states
-  FOR SELECT USING (auth.uid() = player_id);
-
--- Players can only update their own game states
-CREATE POLICY "Players can update own game states" ON game_states
-  FOR UPDATE USING (auth.uid() = player_id);
-
--- Players can create their own game states
-CREATE POLICY "Players can create game states" ON game_states
-  FOR INSERT WITH CHECK (auth.uid() = player_id);
-```
-
-## Functions and Triggers
-
-### Update timestamp trigger
-```sql
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = TIMEZONE('utc'::text, NOW());
-  RETURN NEW;
-END;
-$$ language 'plpgsql';
-
--- Apply to tables
-CREATE TRIGGER update_game_states_updated_at BEFORE UPDATE ON game_states
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-```
-
-### Calculate route profitability
-```sql
+-- Calculate route profitability
 CREATE OR REPLACE FUNCTION calculate_route_profit(
-  p_distance DECIMAL,
-  p_cargo_value DECIMAL,
-  p_efficiency DECIMAL,
-  p_risk_modifier DECIMAL
+  route_uuid UUID
 ) RETURNS DECIMAL AS $$
+DECLARE
+  base_profit DECIMAL := 1000;
+  route_record RECORD;
 BEGIN
-  RETURN p_distance * p_cargo_value * p_efficiency * (1 - (p_risk_modifier * 0.1));
+  SELECT * INTO route_record FROM routes WHERE route_id = route_uuid;
+  
+  -- Apply market-based calculations
+  RETURN base_profit * COALESCE((route_record.profitability->>'modifier')::DECIMAL, 1.0);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Update AI companion experience
+CREATE OR REPLACE FUNCTION update_ai_experience(
+  companion_uuid UUID,
+  experience_gained INT,
+  event_type TEXT,
+  event_data JSONB
+) RETURNS VOID AS $$
+BEGIN
+  -- Update companion experience
+  UPDATE ai_companions
+  SET experience = experience + experience_gained,
+      total_suggestions = total_suggestions + 1
+  WHERE id = companion_uuid;
+  
+  -- Log learning event
+  INSERT INTO ai_learning_events (companion_id, event_type, event_data, experience_gained)
+  VALUES (companion_uuid, event_type, event_data, experience_gained);
 END;
 $$ LANGUAGE plpgsql;
 ```
 
-## Migration Strategy
+## **7. Row Level Security Policies**
 
-1. Run migrations in order
-2. Seed initial port data
-3. Set up RLS policies
-4. Configure real-time subscriptions
-5. Create initial market prices
+```sql
+-- Players table policies
+CREATE POLICY "Users can view own profile" ON players
+  FOR SELECT USING (auth.uid() = user_id);
 
-## Performance Considerations
+CREATE POLICY "Users can update own profile" ON players
+  FOR UPDATE USING (auth.uid() = user_id);
 
-- Use partial indexes for frequently filtered queries
-- Implement table partitioning for transactions if volume grows
-- Use materialized views for complex analytics
-- Monitor query performance with pg_stat_statements
+-- Assets table policies
+CREATE POLICY "Users can manage own assets" ON assets
+  FOR ALL USING (auth.uid() = owner_id);
 
-## Backup Strategy
+CREATE POLICY "Public can view placed assets" ON assets
+  FOR SELECT USING (position IS NOT NULL);
 
-- Daily automated backups via Supabase
-- Point-in-time recovery enabled
-- Export critical game state data weekly
-- Test restore procedures monthly
+-- Market tables (public read, restricted write)
+CREATE POLICY "Anyone can view market items" ON market_items
+  FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "Anyone can view price history" ON price_history
+  FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "Users can create transactions" ON transactions
+  FOR INSERT TO authenticated WITH CHECK (auth.uid() = player_id);
+
+-- AI companion policies
+CREATE POLICY "Users can access own AI companion" ON ai_companions
+  FOR ALL USING (auth.uid() = user_id);
+```
+
+## **8. Development and Testing**
+
+### **Setup**
+```bash
+# Install Supabase CLI
+npm install -g supabase
+
+# Initialize project
+supabase init
+
+# Start local development
+supabase start
+
+# Apply migrations
+supabase db push
+```
+
+### **Test Data**
+```sql
+-- Insert test player
+INSERT INTO players (user_id, username, cash)
+VALUES ('00000000-0000-0000-0000-000000000000', 'test_player', 100000);
+
+-- Insert test market items
+INSERT INTO market_items (name, type, category, base_price, current_price, supply, demand)
+VALUES
+  ('Electronics', 'GOODS', 'MANUFACTURED', 100, 120, 1000, 1200),
+  ('Coffee', 'GOODS', 'RAW_MATERIALS', 10, 12, 5000, 4800);
+```
+
+## **9. Future Considerations**
+
+- **Ports Table**: Currently ports are referenced by string IDs. A dedicated PORTS table with real-world data is planned.
+- **Disaster Events Table**: For tracking historical disasters and their impacts
+- **Alliance/Guild System**: For multiplayer cooperation
+- **Achievement System**: For player progression rewards
+- **Audit Logs**: Complete change tracking for critical operations
+
+This schema represents the complete, current state of the Flexport database and serves as the authoritative reference for all development work.

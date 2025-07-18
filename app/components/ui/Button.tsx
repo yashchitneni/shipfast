@@ -24,15 +24,15 @@ export const Button: React.FC<ButtonProps> = ({
   const getVariantStyles = () => {
     switch (variant) {
       case 'primary':
-        return 'bg-blue-600 hover:bg-blue-700 text-white';
+        return 'bg-blue-600 hover:bg-blue-700 text-white hover:scale-105 active:scale-100';
       case 'secondary':
-        return 'bg-gray-600 hover:bg-gray-700 text-white';
+        return 'bg-gray-600 hover:bg-gray-700 text-white hover:scale-105 active:scale-100';
       case 'success':
-        return 'bg-green-600 hover:bg-green-700 text-white';
+        return 'bg-green-600 hover:bg-green-700 text-white hover:scale-105 active:scale-100';
       case 'danger':
-        return 'bg-red-600 hover:bg-red-700 text-white';
+        return 'bg-red-600 hover:bg-red-700 text-white hover:scale-105 active:scale-100';
       case 'warning':
-        return 'bg-yellow-500 hover:bg-yellow-600 text-black';
+        return 'bg-yellow-500 hover:bg-yellow-600 text-black hover:scale-105 active:scale-100';
       default:
         return '';
     }
@@ -60,6 +60,7 @@ export const Button: React.FC<ButtonProps> = ({
         ${fullWidth ? 'w-full' : ''}
         ${disabled || loading ? 'opacity-50 cursor-not-allowed' : ''}
         flex items-center justify-center gap-2
+        transform transition-all duration-200
         ${className}
       `}
       disabled={disabled || loading}

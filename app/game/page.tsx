@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { useEmpireStore } from '../../src/store/empireStore';
 import { loadAllAssetDefinitions, getMockPortNodes } from '../lib/assetLoader';
 import { realtimeAssetSync } from '../../lib/supabase/realtime-assets';
+import { ToastContainer } from '../components/ui/Toast';
 
 // Type declaration for development testing
 declare global {
@@ -122,6 +123,9 @@ export default function GamePage() {
       
       {/* Game UI Overlay */}
       <GameUI />
+      
+      {/* Toast Notifications */}
+      <ToastContainer />
     </div>
   );
 }

@@ -159,3 +159,55 @@ export function createPresenceChannel(channelName: string) {
     }
   })
 }
+
+// Subscribe to market price updates - ALL players see same prices
+export function subscribeToMarketPrices(
+  callback: (payload: RealtimePostgresChangesPayload<any>) => void
+): RealtimeSubscription {
+  const supabase = createClient()
+  
+  const channel = supabase
+    .channel('market-price-updates')
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'market_items'
+      },
+      callback
+    )
+    .subscribe()
+
+  return {
+    channel,
+    unsubscribe: () => {
+      supabase.removeChannel(channel)
+    }
+  }
+}
+
+// Subscribe to disaster events that affect market
+export function subscribeToDisasterEvents(
+  callback: (payload: any) => void
+): RealtimeSubscription {
+  const supabase = createClient()
+  
+  const channel = supabase
+    .channel('disaster-events')
+    .on(
+      'broadcast',
+      {
+        event: 'disaster'
+      },
+      callback
+    )
+    .subscribe()
+
+  return {
+    channel,
+    unsubscribe: () => {
+      supabase.removeChannel(channel)
+    }
+  }
+}

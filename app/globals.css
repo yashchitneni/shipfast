@@ -92,7 +92,7 @@ body {
   border-color: var(--hud-border);
 }
 
-/* Animations */
+/* Basic Game Animations */
 @keyframes slide-in {
   from {
     transform: translateX(100%);

@@ -1,10 +1,16 @@
-import { supabase } from './client';
+import { createClient } from './client';
+import { inventoryService } from './inventory';
+
+// Create client once and reuse
+const supabase = createClient();
 import type {
   MarketItem,
-  MarketType,
   PriceHistory,
   Transaction,
-  MarketUpdateResult,
+  MarketUpdateResult
+} from '@/types/market';
+import {
+  MarketType,
   GoodsCategory
 } from '@/types/market';
 
@@ -26,9 +32,22 @@ export const marketService = {
       
       if (error) throw error;
       
+      if (!data || data.length === 0) {
+        return [];
+      }
+      
       return data.map(item => ({
-        ...item,
-        lastUpdated: new Date(item.last_updated)
+        id: item.id,
+        name: item.name,
+        type: item.type as MarketType,
+        category: item.category as GoodsCategory,
+        basePrice: item.base_price,
+        currentPrice: item.current_price,
+        supply: item.supply,
+        demand: item.demand,
+        volatility: item.volatility,
+        productionCostModifier: item.production_cost_modifier,
+        lastUpdated: new Date(item.last_updated || Date.now())
       }));
     } catch (error) {
       console.error('Error fetching market items:', error);
@@ -60,6 +79,12 @@ export const marketService = {
   // Update market item prices
   async updateMarketPrices(items: MarketItem[]): Promise<boolean> {
     try {
+      // Validate input
+      if (!items || items.length === 0) {
+        console.log('No items to update');
+        return true;
+      }
+
       const updates = items.map(item => ({
         id: item.id,
         current_price: item.currentPrice,
@@ -68,18 +93,28 @@ export const marketService = {
         last_updated: new Date().toISOString()
       }));
 
+      console.log(`Updating ${updates.length} market items...`);
+
       const { error } = await supabase
         .from('market_items')
         .upsert(updates);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase upsert error:', error);
+        throw error;
+      }
       
-      // Store price history
-      await this.recordPriceHistory(items);
+      // Store price history (but don't fail the whole update if this fails)
+      try {
+        await this.recordPriceHistory(items);
+      } catch (historyError) {
+        console.warn('Failed to record price history:', historyError);
+        // Continue anyway - price update is more important than history
+      }
       
       return true;
     } catch (error) {
-      console.error('Error updating market prices:', error);
+      console.error('Error updating market prices:', error instanceof Error ? error.message : 'Unknown error', error);
       return false;
     }
   },
@@ -143,91 +178,176 @@ export const marketService = {
   async buyItem(
     itemId: string,
     quantity: number,
-    playerId: string
+    playerId: string,
+    clientPrice?: number  // Price from client-side
   ): Promise<Transaction | null> {
     try {
+      console.log('buyItem called with:', { itemId, quantity, playerId });
+      
       // Get current item data
       const item = await this.getMarketItem(itemId);
-      if (!item || item.supply < quantity) return null;
+      console.log('Retrieved item:', item);
+      
+      if (!item) {
+        console.error('Item not found:', itemId);
+        return null;
+      }
+      
+      if (item.supply < quantity) {
+        console.error('Insufficient supply:', { available: item.supply, requested: quantity });
+        return null;
+      }
 
-      // Calculate transaction
-      const price = item.currentPrice;
+      // Use client price if provided, otherwise fall back to database price
+      const price = clientPrice || item.currentPrice;
       const total = price * quantity;
+      
+      console.log('Transaction details:', { price, total, quantity });
 
       // Create transaction record
-      const transaction: Omit<Transaction, 'id'> = {
-        itemId,
+      const transactionInsert = {
+        item_id: itemId,
         type: 'BUY',
         quantity,
-        price,
-        total,
-        playerId,
-        timestamp: new Date()
+        price_per_unit: price,
+        total_price: total,
+        player_id: playerId,
+        timestamp: new Date().toISOString()
       };
+      
+      console.log('Inserting transaction:', transactionInsert);
 
       const { data, error } = await supabase
         .from('transactions')
-        .insert({
-          item_id: itemId,
-          type: 'BUY',
-          quantity,
-          price,
-          total,
-          player_id: playerId,
-          timestamp: new Date().toISOString()
-        })
+        .insert(transactionInsert)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase transaction insert error:', error);
+        throw error;
+      }
+      
+      console.log('Transaction inserted successfully:', data);
 
       // Update supply and demand
-      await this.updateMarketDynamics(itemId, -quantity, quantity * 0.1);
+      const updateResult = await this.updateMarketDynamics(itemId, -quantity, quantity * 0.1);
+      console.log('Market dynamics update result:', updateResult);
 
-      return {
-        ...transaction,
-        id: data.id
-      };
-    } catch (error) {
-      console.error('Error processing buy transaction:', error);
-      return null;
-    }
-  },
-
-  // Process sell transaction
-  async sellItem(
-    itemId: string,
-    quantity: number,
-    playerId: string
-  ): Promise<Transaction | null> {
-    try {
-      // Get current item data
-      const item = await this.getMarketItem(itemId);
-      if (!item) return null;
-
-      // Calculate transaction
-      const price = item.currentPrice * 0.9; // Sell at 90% of market price
-      const total = price * quantity;
-
-      // Create transaction record
-      const transaction: Omit<Transaction, 'id'> = {
+      // Add to player inventory at their current port (default to 'port-1' for now)
+      // In a real implementation, this would use the player's actual location
+      const inventoryResult = await inventoryService.addToInventory({
+        playerId,
         itemId,
-        type: 'SELL',
         quantity,
-        price,
-        total,
+        locationType: 'port',
+        locationId: 'port-1', // TODO: Get player's current port from game state
+        acquiredPrice: price
+      });
+      
+      console.log('Added to player inventory:', inventoryResult);
+
+      const transaction: Transaction = {
+        id: data.id,
+        marketItemId: itemId,
+        type: 'BUY',
+        quantity,
+        pricePerUnit: price,
+        totalPrice: total,
         playerId,
         timestamp: new Date()
       };
 
+      return transaction;
+    } catch (error) {
+      console.error('Error processing buy transaction:', error instanceof Error ? error.message : 'Unknown error', error);
+      throw error; // Re-throw to let the UI handle it properly
+    }
+  },
+
+  // Process sell transaction (now with inventory check)
+  async sellItem(
+    itemId: string,
+    quantity: number,
+    playerId: string,
+    locationId: string = 'port-1', // TODO: Get from player's current location
+    clientPrice?: number  // Price from client-side
+  ): Promise<Transaction | null> {
+    try {
+      console.log('=== SELL ITEM DEBUG START ===');
+      console.log('sellItem called with:', { itemId, quantity, playerId, locationId, clientPrice });
+      
+      // First check if player has the item in inventory
+      console.log('Fetching player inventory at location:', locationId);
+      const playerInventory = await inventoryService.getInventoryAtLocation(playerId, locationId);
+      console.log('Player inventory response:', playerInventory);
+      console.log('Inventory count:', playerInventory.length);
+      console.log('Inventory items:', playerInventory.map(inv => ({
+        itemId: inv.itemId,
+        quantity: inv.quantity,
+        locationId: inv.locationId
+      })));
+      
+      const inventoryItem = playerInventory.find(inv => inv.itemId === itemId);
+      console.log('Looking for itemId:', itemId);
+      console.log('Found inventory item:', inventoryItem);
+      
+      if (!inventoryItem) {
+        // This is an expected case - player trying to sell something they don't own
+        // Log only in debug mode, not as error
+        console.log('Player inventory check: No item found');
+        console.log('Details:', { playerId, itemId, locationId, inventoryCount: playerInventory.length });
+        
+        // Return a user-friendly error without throwing
+        throw new Error('You do not own this item at your current location');
+      }
+      
+      if (inventoryItem.quantity < quantity) {
+        console.error('Insufficient inventory:', { available: inventoryItem.quantity, requested: quantity });
+        throw new Error(`You only have ${inventoryItem.quantity} units available to sell`);
+      }
+      
+      // Get current market data
+      const item = await this.getMarketItem(itemId);
+      if (!item) {
+        throw new Error('Market item not found');
+      }
+
+      // Use client price if provided (with 90% modifier), otherwise fall back to database price
+      const basePrice = clientPrice || item.currentPrice;
+      const price = basePrice * 0.9;  // Sell at 90% of market price
+      const total = price * quantity;
+      
+      // Calculate profit
+      const profit = (price - inventoryItem.acquiredPrice) * quantity;
+      console.log('Sale profit calculation:', {
+        acquiredPrice: inventoryItem.acquiredPrice,
+        salePrice: price,
+        quantity: quantity,
+        profit: profit
+      });
+
+      // Remove from inventory first
+      const removed = await inventoryService.removeFromInventory(
+        playerId,
+        itemId,
+        locationId,
+        quantity
+      );
+      
+      if (!removed) {
+        throw new Error('Failed to remove items from inventory');
+      }
+
+      // Create transaction record
       const { data, error } = await supabase
         .from('transactions')
         .insert({
           item_id: itemId,
           type: 'SELL',
           quantity,
-          price,
-          total,
+          price_per_unit: price,
+          total_price: total,
           player_id: playerId,
           timestamp: new Date().toISOString()
         })
@@ -236,16 +356,28 @@ export const marketService = {
 
       if (error) throw error;
 
-      // Update supply and demand
+      // Update market supply and demand
       await this.updateMarketDynamics(itemId, quantity, -quantity * 0.1);
+      
+      console.log('Sell transaction successful:', {
+        transactionId: data.id,
+        profit: profit,
+        total: total
+      });
 
       return {
-        ...transaction,
-        id: data.id
+        id: data.id,
+        marketItemId: itemId,
+        type: 'SELL',
+        quantity,
+        pricePerUnit: price,
+        totalPrice: total,
+        playerId,
+        timestamp: new Date()
       };
     } catch (error) {
-      console.error('Error processing sell transaction:', error);
-      return null;
+      console.error('Error processing sell transaction:', error instanceof Error ? error.message : 'Unknown error', error);
+      throw error; // Re-throw to let UI handle it
     }
   },
 
@@ -297,11 +429,11 @@ export const marketService = {
       
       return data.map(tx => ({
         id: tx.id,
-        itemId: tx.item_id,
+        marketItemId: tx.item_id,
         type: tx.type,
         quantity: tx.quantity,
-        price: tx.price,
-        total: tx.total,
+        pricePerUnit: tx.price_per_unit,
+        totalPrice: tx.total_price,
         playerId: tx.player_id,
         timestamp: new Date(tx.timestamp)
       }));
@@ -314,6 +446,15 @@ export const marketService = {
   // Initialize market with default items
   async initializeMarket(): Promise<boolean> {
     try {
+      // Check if market already has items
+      const { count } = await supabase
+        .from('market_items')
+        .select('*', { count: 'exact', head: true });
+      
+      if (count && count > 0) {
+        console.log(`Market already initialized with ${count} items`);
+        return true;
+      }
       const defaultItems: Omit<MarketItem, 'id' | 'lastUpdated'>[] = [
         // Raw Materials
         {
@@ -389,7 +530,15 @@ export const marketService = {
         .from('market_items')
         .upsert(
           defaultItems.map(item => ({
-            ...item,
+            name: item.name,
+            type: item.type,
+            category: item.category,
+            base_price: item.basePrice,
+            current_price: item.currentPrice,
+            supply: item.supply,
+            demand: item.demand,
+            volatility: item.volatility,
+            production_cost_modifier: item.productionCostModifier,
             last_updated: new Date().toISOString()
           }))
         );
@@ -398,7 +547,7 @@ export const marketService = {
       
       return true;
     } catch (error) {
-      console.error('Error initializing market:', error);
+      console.error('Error initializing market:', error instanceof Error ? error.message : 'Unknown error', error);
       return false;
     }
   }

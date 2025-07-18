@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { marketService } from '@/lib/supabase/markets';
+import { subscribeToMarketPrices, subscribeToDisasterEvents } from '@/lib/supabase/realtime';
+import type { RealtimeSubscription } from '@/lib/supabase/realtime';
 import type {
   MarketItem,
   MarketType,
@@ -17,6 +19,9 @@ interface MarketStore extends MarketState {
   // State
   isLoading: boolean;
   error: string | null;
+  realtimeSubscriptions: RealtimeSubscription[];
+  transactionListeners: (() => void)[];
+  optimisticUpdates: Map<string, any>; // Track optimistic updates
   
   // Actions
   initializeMarket: () => Promise<void>;
@@ -25,10 +30,18 @@ interface MarketStore extends MarketState {
   updateMarketCycle: () => Promise<MarketUpdateResult | null>;
   buyItem: (itemId: string, quantity: number, playerId: string) => Promise<Transaction | null>;
   sellItem: (itemId: string, quantity: number, playerId: string) => Promise<Transaction | null>;
+  buyItemOptimistic: (itemId: string, quantity: number, playerId: string, playerCash: number) => Promise<Transaction | null>;
+  sellItemOptimistic: (itemId: string, quantity: number, playerId: string) => Promise<Transaction | null>;
   getItemsByCategory: (category: GoodsCategory) => MarketItem[];
   getMarketTrends: (itemId: string) => { trend: 'up' | 'down' | 'stable'; percentageChange: number };
   subscribeToMarketUpdates: () => void;
   unsubscribeFromMarketUpdates: () => void;
+  handleRealtimeUpdate: (payload: any) => void;
+  handleDisasterEvent: (payload: any) => void;
+  
+  // Transaction event handling
+  onTransactionComplete: (callback: () => void) => () => void;
+  notifyTransactionComplete: () => void;
   
   // Utility functions
   setError: (error: string | null) => void;
@@ -62,18 +75,38 @@ export const useMarketStore = create<MarketStore>()(
         ...initialState,
         isLoading: false,
         error: null,
+        realtimeSubscriptions: [],
+        transactionListeners: [],
+        optimisticUpdates: new Map(),
+        
+        onTransactionComplete: (callback: () => void) => {
+          const listeners = get().transactionListeners;
+          set({ transactionListeners: [...listeners, callback] });
+          
+          // Return unsubscribe function
+          return () => {
+            const currentListeners = get().transactionListeners;
+            set({ transactionListeners: currentListeners.filter(l => l !== callback) });
+          };
+        },
+        
+        notifyTransactionComplete: () => {
+          const listeners = get().transactionListeners;
+          listeners.forEach(callback => callback());
+        },
 
         initializeMarket: async () => {
+          console.log('Market initialization starting...');
           set({ isLoading: true, error: null });
+          
           try {
-            // Initialize default market items in database
-            await marketService.initializeMarket();
-            
-            // Load all market items
+            // Load initial market items
             await get().loadMarketItems();
             
-            // Start market update subscription
+            // Subscribe to realtime updates
             get().subscribeToMarketUpdates();
+            
+            console.log('Market initialization complete with realtime');
           } catch (error) {
             set({ error: 'Failed to initialize market' });
             console.error('Market initialization error:', error);
@@ -85,19 +118,18 @@ export const useMarketStore = create<MarketStore>()(
         loadMarketItems: async (type?: MarketType) => {
           set({ isLoading: true });
           try {
+            // Load items directly from database
             const items = await marketService.getMarketItems(type);
-            const itemsMap = new Map(items.map(item => [item.id, item]));
             
-            // Load price history for each item
-            const historyMap = new Map<string, PriceHistory[]>();
-            for (const item of items) {
-              const history = await marketService.getPriceHistory(item.id, 24);
-              historyMap.set(item.id, history);
+            if (!items || items.length === 0) {
+              throw new Error('No market items found in database');
             }
+            
+            const itemsMap = new Map(items.map(item => [item.id, item]));
             
             set({ 
               items: itemsMap,
-              priceHistory: historyMap,
+              priceHistory: new Map(),
               error: null 
             });
           } catch (error) {
@@ -131,6 +163,13 @@ export const useMarketStore = create<MarketStore>()(
 
         updateMarketCycle: async (): Promise<MarketUpdateResult | null> => {
           const state = get();
+          
+          // Don't update if there are no items
+          if (!state.items || state.items.size === 0) {
+            console.log('No market items to update');
+            return null;
+          }
+
           const updatedItems: MarketItem[] = [];
           const priceChanges: Array<{
             itemId: string;
@@ -142,6 +181,12 @@ export const useMarketStore = create<MarketStore>()(
           try {
             // Update each market item
             state.items.forEach((item) => {
+              // Skip if item doesn't have required properties
+              if (!item.id || !item.currentPrice || !item.basePrice) {
+                console.warn('Skipping invalid item:', item);
+                return;
+              }
+
               const oldPrice = item.currentPrice;
               
               // Apply market dynamics
@@ -175,14 +220,25 @@ export const useMarketStore = create<MarketStore>()(
               });
             });
 
+            // Only update if we have valid items
+            if (updatedItems.length === 0) {
+              console.log('No valid items to update');
+              return null;
+            }
+
             // Update database
-            await marketService.updateMarketPrices(updatedItems);
+            const success = await marketService.updateMarketPrices(updatedItems);
             
-            // Update local state
+            if (!success) {
+              console.warn('Failed to update market prices in database, but continuing with local update');
+            }
+            
+            // Update local state regardless of database update
             const newItemsMap = new Map(updatedItems.map(item => [item.id, item]));
             set({
               items: newItemsMap,
-              lastUpdateCycle: new Date()
+              lastUpdateCycle: new Date(),
+              error: null // Clear any previous errors
             });
 
             return {
@@ -191,7 +247,7 @@ export const useMarketStore = create<MarketStore>()(
               timestamp: new Date()
             };
           } catch (error) {
-            console.error('Market cycle update error:', error);
+            console.error('Market cycle update error:', error instanceof Error ? error.message : 'Unknown error', error);
             set({ error: 'Failed to update market cycle' });
             return null;
           }
@@ -207,7 +263,8 @@ export const useMarketStore = create<MarketStore>()(
           }
 
           try {
-            const transaction = await marketService.buyItem(itemId, quantity, playerId);
+            // Pass the current client-side price
+            const transaction = await marketService.buyItem(itemId, quantity, playerId, item.currentPrice);
             
             if (transaction) {
               // Update local state
@@ -225,6 +282,11 @@ export const useMarketStore = create<MarketStore>()(
                 transactions: [...state.transactions, transaction].slice(-100), // Keep last 100 transactions
                 error: null
               });
+              
+              // Notify listeners after a short delay to ensure server has updated
+              setTimeout(() => {
+                get().notifyTransactionComplete();
+              }, 300);
             }
             
             return transaction;
@@ -245,7 +307,8 @@ export const useMarketStore = create<MarketStore>()(
           }
 
           try {
-            const transaction = await marketService.sellItem(itemId, quantity, playerId);
+            // Pass the current client-side price
+            const transaction = await marketService.sellItem(itemId, quantity, playerId, 'port-1', item.currentPrice);
             
             if (transaction) {
               // Update local state
@@ -263,12 +326,204 @@ export const useMarketStore = create<MarketStore>()(
                 transactions: [...state.transactions, transaction].slice(-100),
                 error: null
               });
+              
+              // Notify listeners after a short delay to ensure server has updated
+              setTimeout(() => {
+                get().notifyTransactionComplete();
+              }, 300);
             }
             
             return transaction;
           } catch (error) {
             console.error('Sell transaction error:', error);
             set({ error: 'Failed to complete sale' });
+            return null;
+          }
+        },
+
+        buyItemOptimistic: async (itemId: string, quantity: number, playerId: string, playerCash: number): Promise<Transaction | null> => {
+          const state = get();
+          const item = state.items.get(itemId);
+          
+          if (!item || item.supply < quantity) {
+            set({ error: 'Insufficient supply or item not found' });
+            return null;
+          }
+          
+          // Calculate expected values
+          const expectedCost = item.currentPrice * quantity;
+          
+          if (playerCash < expectedCost) {
+            set({ error: 'Insufficient funds' });
+            return null;
+          }
+          
+          // Store rollback state
+          const rollbackState = {
+            item: { ...item },
+            transactions: [...state.transactions]
+          };
+          
+          // Create optimistic transaction
+          const optimisticTransaction: Transaction = {
+            id: `optimistic-${Date.now()}`,
+            marketItemId: itemId,
+            type: 'BUY',
+            quantity,
+            pricePerUnit: item.currentPrice,
+            totalPrice: expectedCost,
+            playerId,
+            timestamp: new Date()
+          };
+          
+          // Apply optimistic update immediately
+          const optimisticItem = {
+            ...item,
+            supply: item.supply - quantity,
+            demand: item.demand + (quantity * 0.1)
+          };
+          
+          const newItems = new Map(state.items);
+          newItems.set(itemId, optimisticItem);
+          
+          set({
+            items: newItems,
+            transactions: [...state.transactions, optimisticTransaction].slice(-100),
+            error: null
+          });
+          
+          // Track this optimistic update
+          state.optimisticUpdates.set(optimisticTransaction.id, rollbackState);
+          
+          // Notify immediately for instant UI update
+          get().notifyTransactionComplete();
+          
+          try {
+            // Send to server
+            const serverTransaction = await marketService.buyItem(itemId, quantity, playerId, item.currentPrice);
+            
+            if (serverTransaction) {
+              // Replace optimistic transaction with real one
+              const updatedTransactions = state.transactions.filter(t => t.id !== optimisticTransaction.id);
+              
+              set({
+                transactions: [...updatedTransactions, serverTransaction].slice(-100)
+              });
+              
+              // Clean up optimistic update tracking
+              state.optimisticUpdates.delete(optimisticTransaction.id);
+              
+              return serverTransaction;
+            } else {
+              throw new Error('Server returned null transaction');
+            }
+          } catch (error) {
+            // Rollback on failure
+            console.error('Buy transaction failed, rolling back:', error);
+            
+            const newItems = new Map(state.items);
+            newItems.set(itemId, rollbackState.item);
+            
+            set({
+              items: newItems,
+              transactions: rollbackState.transactions,
+              error: 'Purchase failed - changes reverted'
+            });
+            
+            // Clean up and notify
+            state.optimisticUpdates.delete(optimisticTransaction.id);
+            get().notifyTransactionComplete();
+            
+            return null;
+          }
+        },
+
+        sellItemOptimistic: async (itemId: string, quantity: number, playerId: string): Promise<Transaction | null> => {
+          const state = get();
+          const item = state.items.get(itemId);
+          
+          if (!item) {
+            set({ error: 'Item not found' });
+            return null;
+          }
+          
+          // Store rollback state
+          const rollbackState = {
+            item: { ...item },
+            transactions: [...state.transactions]
+          };
+          
+          // Create optimistic transaction
+          const sellPrice = item.currentPrice * 0.9; // 90% of market price
+          const optimisticTransaction: Transaction = {
+            id: `optimistic-${Date.now()}`,
+            marketItemId: itemId,
+            type: 'SELL',
+            quantity,
+            pricePerUnit: sellPrice,
+            totalPrice: sellPrice * quantity,
+            playerId,
+            timestamp: new Date()
+          };
+          
+          // Apply optimistic update immediately
+          const optimisticItem = {
+            ...item,
+            supply: item.supply + quantity,
+            demand: Math.max(0, item.demand - (quantity * 0.1))
+          };
+          
+          const newItems = new Map(state.items);
+          newItems.set(itemId, optimisticItem);
+          
+          set({
+            items: newItems,
+            transactions: [...state.transactions, optimisticTransaction].slice(-100),
+            error: null
+          });
+          
+          // Track this optimistic update
+          state.optimisticUpdates.set(optimisticTransaction.id, rollbackState);
+          
+          // Notify immediately for instant UI update
+          get().notifyTransactionComplete();
+          
+          try {
+            // Send to server
+            const serverTransaction = await marketService.sellItem(itemId, quantity, playerId, 'port-1', item.currentPrice);
+            
+            if (serverTransaction) {
+              // Replace optimistic transaction with real one
+              const updatedTransactions = state.transactions.filter(t => t.id !== optimisticTransaction.id);
+              
+              set({
+                transactions: [...updatedTransactions, serverTransaction].slice(-100)
+              });
+              
+              // Clean up optimistic update tracking
+              state.optimisticUpdates.delete(optimisticTransaction.id);
+              
+              return serverTransaction;
+            } else {
+              throw new Error('Server returned null transaction');
+            }
+          } catch (error) {
+            // Rollback on failure
+            console.error('Sell transaction failed, rolling back:', error);
+            
+            const newItems = new Map(state.items);
+            newItems.set(itemId, rollbackState.item);
+            
+            set({
+              items: newItems,
+              transactions: rollbackState.transactions,
+              error: 'Sale failed - changes reverted'
+            });
+            
+            // Clean up and notify
+            state.optimisticUpdates.delete(optimisticTransaction.id);
+            get().notifyTransactionComplete();
+            
             return null;
           }
         },
@@ -301,21 +556,94 @@ export const useMarketStore = create<MarketStore>()(
         },
 
         subscribeToMarketUpdates: () => {
-          // This would connect to Supabase realtime or set up a timer for market updates
-          // For now, we'll use a simple interval
-          const intervalId = setInterval(() => {
-            get().updateMarketCycle();
-          }, 60000); // Update every 60 seconds
-
-          // Store interval ID for cleanup
-          (window as any).__marketUpdateInterval = intervalId;
+          console.log('🎯 Setting up realtime market subscriptions');
+          const state = get();
+          
+          // Subscribe to market price updates
+          const priceSubscription = subscribeToMarketPrices((payload) => {
+            get().handleRealtimeUpdate(payload);
+          });
+          
+          // Subscribe to disaster events
+          const disasterSubscription = subscribeToDisasterEvents((payload) => {
+            get().handleDisasterEvent(payload);
+          });
+          
+          // Store subscriptions for cleanup
+          set({ 
+            realtimeSubscriptions: [
+              ...state.realtimeSubscriptions,
+              priceSubscription,
+              disasterSubscription
+            ]
+          });
         },
 
         unsubscribeFromMarketUpdates: () => {
-          const intervalId = (window as any).__marketUpdateInterval;
-          if (intervalId) {
-            clearInterval(intervalId);
-            delete (window as any).__marketUpdateInterval;
+          console.log('🔌 Cleaning up realtime subscriptions');
+          const { realtimeSubscriptions } = get();
+          
+          realtimeSubscriptions.forEach(sub => sub.unsubscribe());
+          set({ realtimeSubscriptions: [] });
+        },
+
+        handleRealtimeUpdate: (payload: any) => {
+          console.log('📈 Realtime market update:', payload);
+          const state = get();
+          
+          if (payload.new) {
+            // Convert database format to app format
+            const updatedItem: MarketItem = {
+              id: payload.new.id,
+              name: payload.new.name,
+              type: payload.new.type,
+              category: payload.new.category,
+              basePrice: payload.new.base_price,
+              currentPrice: payload.new.current_price,
+              supply: payload.new.supply,
+              demand: payload.new.demand,
+              volatility: payload.new.volatility,
+              productionCostModifier: payload.new.production_cost_modifier,
+              lastUpdated: new Date()
+            };
+            
+            // Update the item in our local store
+            const newItems = new Map(state.items);
+            newItems.set(updatedItem.id, updatedItem);
+            set({ items: newItems });
+          }
+        },
+
+        handleDisasterEvent: (payload: any) => {
+          console.log('🌊 Disaster event received:', payload);
+          // Handle disaster events that affect multiple items
+          // This would update prices based on the disaster impact
+          const { affectedItems, priceImpact, message } = payload;
+          
+          if (affectedItems && priceImpact) {
+            const state = get();
+            const newItems = new Map(state.items);
+            
+            affectedItems.forEach((itemId: string) => {
+              const item = newItems.get(itemId);
+              if (item) {
+                // Apply disaster price impact
+                const newPrice = item.currentPrice * priceImpact;
+                newItems.set(itemId, {
+                  ...item,
+                  currentPrice: newPrice,
+                  lastUpdated: new Date()
+                });
+              }
+            });
+            
+            set({ items: newItems });
+            
+            // Show notification to user
+            if (message) {
+              console.log('🚨 MARKET ALERT:', message);
+              // You could trigger a toast notification here
+            }
           }
         },
 
